@@ -1,0 +1,12 @@
+{
+  "name": "shootsy-backend",
+  "version": "1.0.0",
+  "description": "Shootsy marketplace backend. Zero npm dependencies - uses Node's built-in http and sqlite modules only.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=22.5.0"
+  }
+}
