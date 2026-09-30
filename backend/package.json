@@ -1,0 +1,14 @@
+{
+  "name": "shootsy-backend",
+  "version": "1.0.0",
+  "description": "Shootsy API — real accounts, real SQLite database, zero external dependencies (uses Node's built-in node:sqlite).",
+  "main": "server.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=22.5.0"
+  },
+  "license": "ISC"
+}
