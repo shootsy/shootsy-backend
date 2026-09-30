@@ -32,6 +32,8 @@ db.exec(`
     content_type TEXT DEFAULT 'both',
     rate REAL DEFAULT 0,
     portfolio TEXT DEFAULT '[]',
+    styles TEXT DEFAULT '[]',
+    experience TEXT DEFAULT '',
     rating_avg REAL DEFAULT 0,
     rating_count INTEGER DEFAULT 0
   );
@@ -71,5 +73,9 @@ db.exec(`
     created_at TEXT NOT NULL
   );
 `);
+
+// Migrate existing databases created before "styles"/"experience" columns existed.
+try { db.exec(`ALTER TABLE creator_profiles ADD COLUMN styles TEXT DEFAULT '[]'`); } catch (e) {}
+try { db.exec(`ALTER TABLE creator_profiles ADD COLUMN experience TEXT DEFAULT ''`); } catch (e) {}
 
 module.exports = db;

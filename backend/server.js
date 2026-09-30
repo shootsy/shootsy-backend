@@ -34,6 +34,8 @@ function creatorPublic(u, p) {
     contentType: p ? p.content_type : 'both',
     rate: p ? p.rate : 0,
     portfolio: p ? JSON.parse(p.portfolio || '[]') : [],
+    styles: p ? JSON.parse(p.styles || '[]') : [],
+    experience: p ? (p.experience || '') : '',
     ratingAvg: p ? p.rating_avg : 0,
     ratingCount: p ? p.rating_count : 0,
   };
@@ -132,12 +134,17 @@ function handleListCreators(req, res, query) {
   const search = (query.get('q') || '').toLowerCase();
   const type = query.get('type');
   let rows = db.prepare(`
-    SELECT u.*, p.bio, p.content_type, p.rate, p.portfolio, p.rating_avg, p.rating_count
+    SELECT u.*, p.bio, p.content_type, p.rate, p.portfolio, p.styles, p.experience, p.rating_avg, p.rating_count
     FROM users u JOIN creator_profiles p ON p.user_id = u.id
     WHERE u.role = 'creator'
   `).all();
   rows = rows.filter(r => {
-    const matchesSearch = !search || r.name.toLowerCase().includes(search) || (r.city || '').toLowerCase().includes(search) || (r.bio || '').toLowerCase().includes(search);
+    const styles = (() => { try { return JSON.parse(r.styles || '[]'); } catch (e) { return []; } })();
+    const matchesSearch = !search
+      || r.name.toLowerCase().includes(search)
+      || (r.city || '').toLowerCase().includes(search)
+      || (r.bio || '').toLowerCase().includes(search)
+      || styles.some(s => s.toLowerCase().includes(search));
     const matchesType = !type || type === 'all' || r.content_type === type || r.content_type === 'both';
     return matchesSearch && matchesType;
   });
@@ -162,8 +169,10 @@ async function handleUpdateCreatorProfile(req, res, user) {
   const contentType = body.contentType ?? current.content_type;
   const rate = body.rate ?? current.rate;
   const portfolio = body.portfolio ? JSON.stringify(body.portfolio) : current.portfolio;
-  db.prepare('UPDATE creator_profiles SET bio=?, content_type=?, rate=?, portfolio=? WHERE user_id=?')
-    .run(bio, contentType, rate, portfolio, user.id);
+  const styles = body.styles ? JSON.stringify(body.styles) : (current.styles || '[]');
+  const experience = body.experience ?? (current.experience || '');
+  db.prepare('UPDATE creator_profiles SET bio=?, content_type=?, rate=?, portfolio=?, styles=?, experience=? WHERE user_id=?')
+    .run(bio, contentType, rate, portfolio, styles, experience, user.id);
   send(res, 200, creatorPublic(user, getCreatorProfile(user.id)));
 }
 
