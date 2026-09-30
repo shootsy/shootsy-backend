@@ -189,6 +189,26 @@
         <div class="field"><label>Content type</label>
           <select id="pfType"><option value="photo">Photo</option><option value="video">Video</option><option value="both">Both</option></select>
         </div>
+        <div class="field">
+          <label>Your style (pick all that apply)</label>
+          <div class="chip-row" id="pfStyleChips">
+            <button type="button" class="chip" data-style="portrait">Portrait</button>
+            <button type="button" class="chip" data-style="event">Event</button>
+            <button type="button" class="chip" data-style="product">Product</button>
+            <button type="button" class="chip" data-style="fashion">Fashion</button>
+            <button type="button" class="chip" data-style="travel">Travel</button>
+            <button type="button" class="chip" data-style="food">Food</button>
+          </div>
+        </div>
+        <div class="field"><label>Experience</label>
+          <select id="pfExperience">
+            <option value="">Select...</option>
+            <option value="Less than 1 year">Less than 1 year</option>
+            <option value="1-3 years">1-3 years</option>
+            <option value="3-5 years">3-5 years</option>
+            <option value="5+ years">5+ years</option>
+          </select>
+        </div>
         <div class="field"><label>Rate (£ per hour)</label><input type="number" id="pfRate" min="0"></div>
         <div class="field"><label>Portfolio links (one per line)</label><textarea id="pfPortfolio" placeholder="https://instagram.com/you"></textarea></div>
         <button class="btn btn-primary btn-block" id="pfSave">Save portfolio</button>
@@ -375,8 +395,9 @@ async function openCreatorModal(id){
     <button class="modal-close" onclick="closeModal()">✕</button>
     <div class="avatar" style="width:64px;height:64px;font-size:20px;margin-bottom:12px;">${initials(c.name)}</div>
     <h2>${esc(c.name)}</h2>
-    <p style="color:var(--ink-soft);margin:4px 0 14px;">${esc(c.city||'')} · £${c.rate}/hr · ${esc(c.contentType)}</p>
+    <p style="color:var(--ink-soft);margin:4px 0 14px;">${esc(c.city||'')} · £${c.rate}/hr · ${esc(c.contentType)}${c.experience ? ' · ' + esc(c.experience) + ' experience' : ''}</p>
     <p style="margin-bottom:14px;">${esc(c.bio || 'No bio yet.')}</p>
+    ${(c.styles && c.styles.length) ? `<div class="chip-row" style="margin-bottom:14px;">${c.styles.map(s => `<span class="chip active" style="cursor:default;">${esc(s.charAt(0).toUpperCase()+s.slice(1))}</span>`).join('')}</div>` : ''}
     <div class="portfolio-list">${(c.portfolio||[]).map(p => `<a href="${esc(p)}" target="_blank" rel="noopener">${esc(p)}</a>`).join('') || '<span style="color:var(--ink-soft);font-size:13px;">No portfolio links yet.</span>'}</div>
     <h3 style="margin:18px 0 8px;font-size:16px;">Reviews ${c.ratingCount ? '· ★' + c.ratingAvg.toFixed(1) : ''}</h3>
     <div>${(c.reviews||[]).map(r => `<div style="margin-bottom:10px;"><span class="stars">${'★'.repeat(r.rating)}${'☆'.repeat(5-r.rating)}</span> <strong style="font-size:13px;">${esc(r.client_name)}</strong><div style="font-size:13px;color:var(--ink-soft);">${esc(r.comment||'')}</div></div>`).join('') || '<div class="empty" style="padding:10px 0;">No reviews yet.</div>'}</div>
@@ -511,14 +532,33 @@ async function openBookingModal(id, booking){
 }
 
 // ---------- CREATOR: PORTFOLIO ----------
+let selectedStyles = [];
+document.getElementById('pfStyleChips').querySelectorAll('.chip').forEach(chip => {
+  chip.onclick = () => {
+    const style = chip.dataset.style;
+    if (selectedStyles.includes(style)) {
+      selectedStyles = selectedStyles.filter(s => s !== style);
+      chip.classList.remove('active');
+    } else {
+      selectedStyles.push(style);
+      chip.classList.add('active');
+    }
+  };
+});
+
 async function loadPortfolioForm(){
   try {
     const me = await api('/me');
     const p = me.creatorProfile;
     document.getElementById('pfBio').value = p.bio || '';
     document.getElementById('pfType').value = p.contentType || 'both';
+    document.getElementById('pfExperience').value = p.experience || '';
     document.getElementById('pfRate').value = p.rate || 0;
     document.getElementById('pfPortfolio').value = (p.portfolio || []).join('\n');
+    selectedStyles = p.styles || [];
+    document.getElementById('pfStyleChips').querySelectorAll('.chip').forEach(chip => {
+      chip.classList.toggle('active', selectedStyles.includes(chip.dataset.style));
+    });
   } catch (e) {}
 }
 document.getElementById('pfSave').onclick = async () => {
@@ -527,8 +567,10 @@ document.getElementById('pfSave').onclick = async () => {
     await api('/creator-profile', { method: 'PUT', body: JSON.stringify({
       bio: document.getElementById('pfBio').value,
       contentType: document.getElementById('pfType').value,
+      experience: document.getElementById('pfExperience').value,
       rate: Number(document.getElementById('pfRate').value) || 0,
       portfolio: document.getElementById('pfPortfolio').value.split('\n').map(s=>s.trim()).filter(Boolean),
+      styles: selectedStyles,
     })});
     msg.style.color = '#27500A';
     msg.textContent = 'Saved!';
