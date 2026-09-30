@@ -34,8 +34,27 @@ db.exec(`
     portfolio TEXT DEFAULT '[]',
     styles TEXT DEFAULT '[]',
     experience TEXT DEFAULT '',
+    photos TEXT DEFAULT '[]',
+    verified INTEGER DEFAULT 0,
+    lat REAL,
+    lng REAL,
     rating_avg REAL DEFAULT 0,
     rating_count INTEGER DEFAULT 0
+  );
+
+  CREATE TABLE IF NOT EXISTS favorites (
+    client_id INTEGER NOT NULL REFERENCES users(id),
+    creator_id INTEGER NOT NULL REFERENCES users(id),
+    created_at TEXT NOT NULL,
+    PRIMARY KEY (client_id, creator_id)
+  );
+
+  CREATE TABLE IF NOT EXISTS availability_blocks (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    creator_id INTEGER NOT NULL REFERENCES users(id),
+    start_datetime TEXT NOT NULL,
+    end_datetime TEXT NOT NULL,
+    note TEXT DEFAULT ''
   );
 
   CREATE TABLE IF NOT EXISTS bookings (
@@ -74,8 +93,12 @@ db.exec(`
   );
 `);
 
-// Migrate existing databases created before "styles"/"experience" columns existed.
+// Migrate existing databases created before these columns existed.
 try { db.exec(`ALTER TABLE creator_profiles ADD COLUMN styles TEXT DEFAULT '[]'`); } catch (e) {}
 try { db.exec(`ALTER TABLE creator_profiles ADD COLUMN experience TEXT DEFAULT ''`); } catch (e) {}
+try { db.exec(`ALTER TABLE creator_profiles ADD COLUMN photos TEXT DEFAULT '[]'`); } catch (e) {}
+try { db.exec(`ALTER TABLE creator_profiles ADD COLUMN verified INTEGER DEFAULT 0`); } catch (e) {}
+try { db.exec(`ALTER TABLE creator_profiles ADD COLUMN lat REAL`); } catch (e) {}
+try { db.exec(`ALTER TABLE creator_profiles ADD COLUMN lng REAL`); } catch (e) {}
 
 module.exports = db;
