@@ -83,6 +83,12 @@
   .search-row input{flex:1;padding:12px 14px;border-radius:10px;border:1.5px solid var(--border);}
   .search-row select{padding:12px 10px;border-radius:10px;border:1.5px solid var(--border);}
 
+  .picker-block{margin-bottom:16px;}
+  .picker-label{font-size:13px;font-weight:700;color:var(--ink-soft);margin-bottom:8px;}
+  .chip-row{display:flex;flex-wrap:wrap;gap:8px;}
+  .chip{background:#fff;border:1.5px solid var(--border);border-radius:999px;padding:8px 14px;font-size:13px;font-weight:700;color:var(--ink);}
+  .chip.active{background:var(--purple);border-color:var(--purple);color:#fff;}
+
   /* MODAL */
   .modal-backdrop{position:fixed;inset:0;background:rgba(23,15,38,0.5);z-index:50;display:flex;align-items:flex-end;justify-content:center;}
   .modal{background:#fff;border-radius:20px 20px 0 0;max-width:640px;width:100%;max-height:88vh;overflow-y:auto;padding:22px;}
@@ -144,13 +150,29 @@
   <div id="appView" hidden>
     <section id="view-browse">
       <h2 class="section-title">Find a creator</h2>
+
+      <div class="picker-block">
+        <div class="picker-label">What are you looking for?</div>
+        <div class="chip-row" id="typeChips">
+          <button class="chip active" data-type="all">All</button>
+          <button class="chip" data-type="photo">Photography</button>
+          <button class="chip" data-type="video">Videography</button>
+          <button class="chip" data-type="both">Both</button>
+        </div>
+        <div class="picker-label" style="margin-top:12px;">Occasion</div>
+        <div class="chip-row" id="occasionChips">
+          <button class="chip active" data-occasion="">Any</button>
+          <button class="chip" data-occasion="portrait">Portrait</button>
+          <button class="chip" data-occasion="event">Event</button>
+          <button class="chip" data-occasion="product">Product</button>
+          <button class="chip" data-occasion="fashion">Fashion</button>
+          <button class="chip" data-occasion="travel">Travel</button>
+          <button class="chip" data-occasion="food">Food</button>
+        </div>
+      </div>
+
       <div class="search-row">
-        <input type="text" id="searchInput" placeholder="Search by name, city or style">
-        <select id="typeFilter">
-          <option value="all">All</option>
-          <option value="photo">Photo</option>
-          <option value="video">Video</option>
-        </select>
+        <input type="text" id="searchInput" placeholder="Or search by name, city or style">
       </div>
       <div id="creatorList"></div>
     </section>
@@ -304,12 +326,29 @@ function showView(name){
 
 // ---------- CLIENT: BROWSE ----------
 let searchDebounce;
+let selectedType = 'all';
+let selectedOccasion = '';
 document.getElementById('searchInput').oninput = () => { clearTimeout(searchDebounce); searchDebounce = setTimeout(loadCreators, 300); };
-document.getElementById('typeFilter').onchange = loadCreators;
+
+document.getElementById('typeChips').querySelectorAll('.chip').forEach(chip => {
+  chip.onclick = () => {
+    selectedType = chip.dataset.type;
+    document.getElementById('typeChips').querySelectorAll('.chip').forEach(c => c.classList.toggle('active', c === chip));
+    loadCreators();
+  };
+});
+document.getElementById('occasionChips').querySelectorAll('.chip').forEach(chip => {
+  chip.onclick = () => {
+    selectedOccasion = chip.dataset.occasion;
+    document.getElementById('occasionChips').querySelectorAll('.chip').forEach(c => c.classList.toggle('active', c === chip));
+    loadCreators();
+  };
+});
 
 async function loadCreators(){
-  const q = document.getElementById('searchInput').value.trim();
-  const type = document.getElementById('typeFilter').value;
+  const typed = document.getElementById('searchInput').value.trim();
+  const q = typed || selectedOccasion;
+  const type = selectedType;
   const list = document.getElementById('creatorList');
   try {
     const creators = await api(`/creators?q=${encodeURIComponent(q)}&type=${type}`);
