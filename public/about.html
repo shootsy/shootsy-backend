@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Shootsy: About the founder</title>
+<meta name="description" content="Meet Daisy McCarthy, founder of Shootsy, the marketplace for booking trusted local photographers and videographers on demand.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --purple:#E22E72;
+    --purple-dark:#AA2356;
+    --ink:#170F26;
+    --ink-soft:#3E3352;
+    --bg:#FFFFFF;
+    --bg-soft:#FDF1F5;
+    --border:#F6DCE7;
+    --grad: linear-gradient(120deg,var(--purple) 0%,var(--purple-dark) 100%);
+    --grad-soft: linear-gradient(120deg, rgba(226,46,114,0.10), rgba(170,35,86,0.10));
+    --shadow: 0 20px 50px -20px rgba(170,35,86,0.30);
+    --radius: 20px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html{scroll-behavior:smooth;}
+  body{
+    font-family:'Inter',sans-serif;
+    color:var(--ink);
+    background:var(--bg);
+    line-height:1.6;
+    -webkit-font-smoothing:antialiased;
+  }
+  h1,h2,h3,.logotype{font-family:'Fredoka',sans-serif;}
+  a{text-decoration:none;color:inherit;}
+  .container{max-width:760px;margin:0 auto;padding:0 24px;}
+  .eyebrow{
+    display:inline-flex;align-items:center;gap:8px;
+    font-size:13px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
+    color:var(--purple-dark);
+    background:var(--grad-soft);
+    border:1px solid var(--border);
+    padding:6px 14px;border-radius:999px;
+    margin-bottom:18px;
+  }
+  .btn{
+    display:inline-flex;align-items:center;justify-content:center;gap:8px;
+    padding:14px 26px;border-radius:999px;font-weight:700;font-size:15px;
+    cursor:pointer;border:none;transition:transform .15s ease, box-shadow .15s ease;
+    white-space:nowrap;
+  }
+  .btn:hover{transform:translateY(-2px);}
+  .btn-primary{background:var(--grad);color:#fff;box-shadow:var(--shadow);}
+  .btn-ghost{background:#fff;color:var(--ink);border:1.5px solid var(--border);}
+  .btn-ghost:hover{border-color:var(--purple);}
+
+  header{
+    position:sticky;top:0;z-index:100;
+    background:rgba(255,255,255,0.85);
+    backdrop-filter:blur(14px);
+    border-bottom:1px solid var(--border);
+  }
+  nav{display:flex;align-items:center;justify-content:space-between;padding:16px 24px;max-width:1180px;margin:0 auto;}
+  .logo{display:flex;align-items:center;gap:10px;}
+  .logo img{height:30px;width:auto;display:block;}
+
+  .founder-hero{padding:72px 0 20px;text-align:center;}
+  .avatar-xl{
+    width:120px;height:120px;border-radius:50%;
+    background:var(--grad);color:#fff;
+    display:flex;align-items:center;justify-content:center;
+    font-family:'Fredoka',sans-serif;font-size:38px;font-weight:700;letter-spacing:-0.02em;
+    margin:0 auto 22px;box-shadow:var(--shadow);
+  }
+  .founder-hero h1{font-size:clamp(28px,4vw,38px);font-weight:700;letter-spacing:-0.02em;margin-bottom:6px;}
+  .founder-hero .role{font-size:15.5px;color:var(--ink-soft);margin-bottom:4px;}
+  .founder-hero .loc{font-size:14px;color:var(--ink-soft);}
+
+  .bio{padding:36px 0 60px;}
+  .bio p{font-size:17px;color:var(--ink-soft);margin-bottom:20px;}
+  .bio p:last-child{margin-bottom:0;}
+
+  .pull-quote{
+    background:var(--bg-soft);border:1px solid var(--border);border-radius:var(--radius);
+    padding:34px 38px;margin:36px 0;
+  }
+  .pull-quote p{
+    font-family:'Fredoka',sans-serif;font-size:clamp(19px,2.4vw,23px);font-weight:600;
+    color:var(--ink);line-height:1.4;margin:0;
+  }
+
+  .founder-cta{
+    background:var(--grad);border-radius:28px;padding:44px;color:#fff;text-align:center;margin-bottom:70px;
+  }
+  .founder-cta h2{color:#fff;font-size:clamp(22px,3vw,28px);margin-bottom:12px;}
+  .founder-cta p{opacity:.95;font-size:15.5px;margin-bottom:24px;}
+  .founder-cta .ctas{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;}
+  .founder-cta .btn-ghost{background:rgba(255,255,255,0.14);color:#fff;border:none;}
+  .founder-cta .btn-ghost:hover{background:rgba(255,255,255,0.24);}
+
+  footer{padding:40px 0 30px;background:var(--ink);color:rgba(255,255,255,0.6);text-align:center;font-size:13px;}
+  footer a{color:rgba(255,255,255,0.8);}
+  footer a:hover{color:#fff;}
+
+  @media (max-width: 560px){
+    .founder-cta{padding:32px;}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <nav>
+    <a href="index.html" class="logo">
+      <img src="shootsy-logo.png" alt="Shootsy">
+    </a>
+    <a href="index.html" class="btn btn-ghost" style="padding:11px 22px;font-size:14px;">← Back to shootsy.co.uk</a>
+  </nav>
+</header>
+
+<section class="founder-hero">
+  <div class="container">
+    <div class="eyebrow">✦ About the founder</div>
+    <div class="avatar-xl">DM</div>
+    <h1>Daisy McCarthy</h1>
+    <p class="role">Founder of Shootsy, Social Media &amp; Marketing Manager</p>
+    <p class="loc">Born in Southampton, raised in Brisbane, Australia · Now based in London</p>
+  </div>
+</section>
+
+<section class="bio">
+  <div class="container">
+    <p>Shootsy didn't start in a boardroom. It started with Daisy's own outfits and adventures around London. She'd always wanted nice photos of the days out, the new outfit, the little moments worth remembering. But asking friends to stop and take a photo over and over felt like a big ask, and she was always too shy to ask a stranger on the street. So most of those moments just went uncaptured.</p>
+
+    <div class="pull-quote">
+      <p>"I've always wanted photos of my outfits, or of me exploring London, but I hated constantly asking my friends, and I was always too shy to ask a random stranger. There had to be a better way. So I built one."</p>
+    </div>
+
+    <p>As a social media and marketing manager with years of experience delivering large-scale events, Daisy had spent her career working closely with the photographers and videographers who bring those moments to life professionally. It was a small leap from her own frustration to a bigger realisation: if she felt this way, plenty of other people did too, and there was no fast, simple way to book a trusted local creator for a quick shoot, on demand.</p>
+
+    <p>Born in Southampton, Daisy moved to Brisbane, Australia at the age of four and grew up there. She's a dual UK/Australian citizen who now calls London home. That mix of places shows up in how she works: a marketer's eye for what brands, creators and everyday people actually need from their content, and an events professional's understanding of how to make booking talent fast, reliable and stress-free.</p>
+
+    <p>Shootsy is her answer to that gap: a marketplace built specifically for on-demand social content, connecting trusted local photographers and videographers with anyone who needs great photos or video, fast.</p>
+  </div>
+</section>
+
+<section class="container">
+  <div class="founder-cta">
+    <h2>Want to get in touch?</h2>
+    <p>Whether you're a creator, a potential partner, or an investor, I'd love to hear from you.</p>
+    <div class="ctas">
+      <a href="mailto:daisymccarthy92@outlook.com" class="btn btn-primary" style="background:#fff;color:var(--purple-dark);box-shadow:none;">Email Daisy</a>
+      <a href="https://www.linkedin.com/in/daisy-mccarthy-7504b4139/" target="_blank" rel="noopener" class="btn btn-ghost">Connect on LinkedIn</a>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="container">
+    © 2026 Shootsy. Founded by <a href="about.html">Daisy McCarthy</a> in London.
+  </div>
+</footer>
+
+</body>
+</html>

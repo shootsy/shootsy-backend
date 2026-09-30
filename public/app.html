@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Shootsy</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#E22E72">
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --purple:#E22E72; --purple-dark:#AA2356;
+    --ink:#170F26; --ink-soft:#3E3352;
+    --bg:#FFFFFF; --bg-soft:#FDF1F5; --border:#F6DCE7;
+    --radius:16px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'Inter',sans-serif;color:var(--ink);background:var(--bg-soft);line-height:1.5;-webkit-font-smoothing:antialiased;}
+  h1,h2,h3,.logotype{font-family:'Fredoka',sans-serif;}
+  input,select,textarea,button{font-family:inherit;font-size:15px;}
+  button{cursor:pointer;}
+  [hidden]{display:none !important;}
+
+  header{position:sticky;top:0;z-index:20;background:#fff;border-bottom:1px solid var(--border);padding:14px 18px;display:flex;align-items:center;justify-content:space-between;}
+  .logo{display:flex;align-items:center;gap:8px;}
+  .logo img{height:24px;width:auto;display:block;}
+  .logotype{font-size:18px;font-weight:700;}
+  .hdr-user{font-size:13px;color:var(--ink-soft);display:flex;align-items:center;gap:10px;}
+  .btn{border:none;border-radius:999px;padding:11px 18px;font-weight:700;font-size:14px;transition:transform .1s;}
+  .btn:active{transform:scale(0.97);}
+  .btn-primary{background:var(--purple);color:#fff;}
+  .btn-ghost{background:#fff;color:var(--ink);border:1.5px solid var(--border);}
+  .btn-dark{background:var(--ink);color:#fff;}
+  .btn-sm{padding:8px 14px;font-size:13px;}
+  .btn-block{width:100%;}
+  .btn-danger{background:#F7C1C1;color:#791F1F;}
+
+  main{max-width:640px;margin:0 auto;padding:20px 16px 90px;}
+
+  /* AUTH */
+  .auth-card{background:#fff;border:1px solid var(--border);border-radius:20px;padding:28px;margin-top:20px;}
+  .auth-tabs{display:flex;gap:8px;margin-bottom:22px;background:var(--bg-soft);border-radius:999px;padding:4px;}
+  .auth-tab{flex:1;text-align:center;padding:10px;border-radius:999px;font-weight:700;font-size:14px;color:var(--ink-soft);}
+  .auth-tab.active{background:var(--purple);color:#fff;}
+  .field{margin-bottom:14px;}
+  .field label{display:block;font-size:13px;font-weight:600;color:var(--ink-soft);margin-bottom:6px;}
+  .field input, .field select, .field textarea{width:100%;padding:12px 14px;border-radius:10px;border:1.5px solid var(--border);outline:none;}
+  .field textarea{resize:vertical;min-height:70px;}
+  .role-toggle{display:flex;gap:10px;margin-bottom:14px;}
+  .role-opt{flex:1;text-align:center;padding:14px;border-radius:12px;border:1.5px solid var(--border);font-weight:700;font-size:14px;}
+  .role-opt.active{border-color:var(--purple);background:#FBEAF0;color:var(--purple-dark);}
+  .error-msg{color:#A32D2D;font-size:13px;margin-bottom:10px;min-height:16px;}
+
+  /* TABS */
+  .tabbar{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid var(--border);display:flex;z-index:20;}
+  .tab-btn{flex:1;padding:12px 4px 10px;text-align:center;background:none;border:none;font-size:11.5px;font-weight:700;color:var(--ink-soft);}
+  .tab-btn.active{color:var(--purple-dark);}
+  .tab-btn .ic{display:block;font-size:18px;margin-bottom:2px;}
+
+  /* CARDS */
+  .creator-card{background:#fff;border:1px solid var(--border);border-radius:16px;padding:16px;margin-bottom:12px;display:flex;gap:12px;align-items:center;}
+  .avatar{width:48px;height:48px;border-radius:50%;background:linear-gradient(120deg,var(--purple),var(--purple-dark));flex-shrink:0;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;}
+  .creator-card .info{flex:1;min-width:0;}
+  .creator-card .info strong{display:block;font-size:15px;}
+  .creator-card .info span{font-size:12.5px;color:var(--ink-soft);}
+  .rate-tag{font-size:13px;font-weight:700;color:var(--purple-dark);white-space:nowrap;}
+
+  .booking-card{background:#fff;border:1px solid var(--border);border-radius:16px;padding:16px;margin-bottom:12px;}
+  .booking-card .row1{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;}
+  .booking-card strong{font-size:15px;}
+  .badge{font-size:11px;font-weight:700;padding:4px 10px;border-radius:999px;text-transform:capitalize;}
+  .badge.pending{background:#FAC775;color:#633806;}
+  .badge.accepted{background:#C0DD97;color:#27500A;}
+  .badge.declined,.badge.cancelled{background:#F7C1C1;color:#791F1F;}
+  .badge.completed{background:#9FE1CB;color:#04342C;}
+  .booking-card .meta{font-size:13px;color:var(--ink-soft);margin-bottom:10px;}
+  .booking-actions{display:flex;gap:8px;flex-wrap:wrap;}
+
+  .section-title{font-size:20px;font-weight:700;margin-bottom:14px;}
+  .empty{text-align:center;color:var(--ink-soft);font-size:14px;padding:40px 10px;}
+
+  .search-row{display:flex;gap:8px;margin-bottom:16px;}
+  .search-row input{flex:1;padding:12px 14px;border-radius:10px;border:1.5px solid var(--border);}
+  .search-row select{padding:12px 10px;border-radius:10px;border:1.5px solid var(--border);}
+
+  /* MODAL */
+  .modal-backdrop{position:fixed;inset:0;background:rgba(23,15,38,0.5);z-index:50;display:flex;align-items:flex-end;justify-content:center;}
+  .modal{background:#fff;border-radius:20px 20px 0 0;max-width:640px;width:100%;max-height:88vh;overflow-y:auto;padding:22px;}
+  .modal-close{float:right;background:var(--bg-soft);border:none;border-radius:50%;width:32px;height:32px;font-size:16px;}
+  .stars{color:#EF9F27;font-size:14px;}
+  .portfolio-list a{display:block;font-size:13px;color:var(--purple-dark);padding:4px 0;word-break:break-all;}
+  .chat-box{border:1px solid var(--border);border-radius:12px;padding:12px;height:220px;overflow-y:auto;margin:14px 0;background:var(--bg-soft);}
+  .chat-msg{margin-bottom:10px;font-size:14px;}
+  .chat-msg .who{font-size:11px;font-weight:700;color:var(--ink-soft);margin-bottom:2px;}
+  .chat-msg.mine{text-align:right;}
+  .chat-input-row{display:flex;gap:8px;}
+  .chat-input-row input{flex:1;padding:11px 14px;border-radius:999px;border:1.5px solid var(--border);}
+</style>
+</head>
+<body>
+
+<header>
+  <a class="logo" href="index.html">
+    <img src="assets/shootsy-logo.png" alt="Shootsy">
+  </a>
+  <div class="hdr-user" id="hdrUser" hidden>
+    <span id="hdrName"></span>
+    <button class="btn btn-ghost btn-sm" id="logoutBtn">Log out</button>
+  </div>
+</header>
+
+<main>
+  <!-- AUTH VIEW -->
+  <div id="authView">
+    <div class="auth-card">
+      <div class="auth-tabs">
+        <div class="auth-tab active" id="tabLogin">Log in</div>
+        <div class="auth-tab" id="tabSignup">Sign up</div>
+      </div>
+
+      <div id="loginForm">
+        <div class="error-msg" id="loginError"></div>
+        <div class="field"><label>Email</label><input type="email" id="loginEmail" placeholder="you@email.com"></div>
+        <div class="field"><label>Password</label><input type="password" id="loginPassword" placeholder="••••••••"></div>
+        <button class="btn btn-primary btn-block" id="loginSubmit">Log in</button>
+      </div>
+
+      <div id="signupForm" hidden>
+        <div class="error-msg" id="signupError"></div>
+        <div class="role-toggle">
+          <div class="role-opt active" data-role="client">I want to book creators</div>
+          <div class="role-opt" data-role="creator">I'm a photographer/videographer</div>
+        </div>
+        <div class="field"><label>Full name</label><input type="text" id="signupName" placeholder="Jane Doe"></div>
+        <div class="field"><label>Email</label><input type="email" id="signupEmail" placeholder="you@email.com"></div>
+        <div class="field"><label>Password</label><input type="password" id="signupPassword" placeholder="At least 8 characters"></div>
+        <div class="field"><label>City</label><input type="text" id="signupCity" placeholder="London"></div>
+        <button class="btn btn-primary btn-block" id="signupSubmit">Create account</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- APP VIEW -->
+  <div id="appView" hidden>
+    <section id="view-browse">
+      <h2 class="section-title">Find a creator</h2>
+      <div class="search-row">
+        <input type="text" id="searchInput" placeholder="Search by name, city or style">
+        <select id="typeFilter">
+          <option value="all">All</option>
+          <option value="photo">Photo</option>
+          <option value="video">Video</option>
+        </select>
+      </div>
+      <div id="creatorList"></div>
+    </section>
+
+    <section id="view-bookings" hidden>
+      <h2 class="section-title" id="bookingsTitle">My bookings</h2>
+      <div id="bookingList"></div>
+    </section>
+
+    <section id="view-portfolio" hidden>
+      <h2 class="section-title">My portfolio</h2>
+      <div class="auth-card">
+        <div class="field"><label>Bio</label><textarea id="pfBio" placeholder="Tell clients what you shoot..."></textarea></div>
+        <div class="field"><label>Content type</label>
+          <select id="pfType"><option value="photo">Photo</option><option value="video">Video</option><option value="both">Both</option></select>
+        </div>
+        <div class="field"><label>Rate (£ per hour)</label><input type="number" id="pfRate" min="0"></div>
+        <div class="field"><label>Portfolio links (one per line)</label><textarea id="pfPortfolio" placeholder="https://instagram.com/you"></textarea></div>
+        <button class="btn btn-primary btn-block" id="pfSave">Save portfolio</button>
+        <div class="error-msg" id="pfMsg"></div>
+      </div>
+    </section>
+
+    <nav class="tabbar" id="tabbar"></nav>
+  </div>
+</main>
+
+<div class="modal-backdrop" id="modalBackdrop" hidden>
+  <div class="modal" id="modalBody"></div>
+</div>
+
+<script>
+const API = '/api';
+let state = { token: localStorage.getItem('shootsy_token') || null, user: null, chatPoll: null };
+
+function api(path, opts = {}) {
+  const headers = Object.assign({ 'Content-Type': 'application/json' }, opts.headers || {});
+  if (state.token) headers['Authorization'] = 'Bearer ' + state.token;
+  return fetch(API + path, Object.assign({}, opts, { headers }))
+    .then(async r => {
+      const data = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(data.error || 'Something went wrong');
+      return data;
+    });
+}
+
+function initials(name){ return (name||'?').split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase(); }
+function esc(s){ return (s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function fmtDate(iso){ try { return new Date(iso).toLocaleString([], {dateStyle:'medium', timeStyle:'short'}); } catch(e){ return iso; } }
+
+// ---------- AUTH ----------
+document.getElementById('tabLogin').onclick = () => switchAuthTab('login');
+document.getElementById('tabSignup').onclick = () => switchAuthTab('signup');
+function switchAuthTab(which){
+  document.getElementById('tabLogin').classList.toggle('active', which==='login');
+  document.getElementById('tabSignup').classList.toggle('active', which==='signup');
+  document.getElementById('loginForm').hidden = which!=='login';
+  document.getElementById('signupForm').hidden = which!=='signup';
+}
+
+let selectedRole = 'client';
+document.querySelectorAll('.role-opt').forEach(el => {
+  el.onclick = () => {
+    selectedRole = el.dataset.role;
+    document.querySelectorAll('.role-opt').forEach(o => o.classList.toggle('active', o === el));
+  };
+});
+
+document.getElementById('loginSubmit').onclick = async () => {
+  const email = document.getElementById('loginEmail').value.trim();
+  const password = document.getElementById('loginPassword').value;
+  const errEl = document.getElementById('loginError');
+  errEl.textContent = '';
+  try {
+    const data = await api('/login', { method: 'POST', body: JSON.stringify({ email, password }) });
+    onAuthSuccess(data);
+  } catch (e) { errEl.textContent = e.message; }
+};
+
+document.getElementById('signupSubmit').onclick = async () => {
+  const body = {
+    name: document.getElementById('signupName').value.trim(),
+    email: document.getElementById('signupEmail').value.trim(),
+    password: document.getElementById('signupPassword').value,
+    city: document.getElementById('signupCity').value.trim(),
+    role: selectedRole,
+  };
+  const errEl = document.getElementById('signupError');
+  errEl.textContent = '';
+  try {
+    const data = await api('/signup', { method: 'POST', body: JSON.stringify(body) });
+    onAuthSuccess(data);
+  } catch (e) { errEl.textContent = e.message; }
+};
+
+function onAuthSuccess(data){
+  state.token = data.token;
+  state.user = data.user;
+  localStorage.setItem('shootsy_token', data.token);
+  enterApp();
+}
+
+document.getElementById('logoutBtn').onclick = () => {
+  state.token = null; state.user = null;
+  localStorage.removeItem('shootsy_token');
+  document.getElementById('appView').hidden = true;
+  document.getElementById('hdrUser').hidden = true;
+  document.getElementById('authView').hidden = false;
+};
+
+// ---------- APP SHELL ----------
+function enterApp(){
+  document.getElementById('authView').hidden = true;
+  document.getElementById('appView').hidden = false;
+  document.getElementById('hdrUser').hidden = false;
+  document.getElementById('hdrName').textContent = 'Hi, ' + state.user.name.split(' ')[0];
+  buildTabbar();
+  if (state.user.role === 'client') { showView('browse'); loadCreators(); }
+  else { showView('bookings'); document.getElementById('bookingsTitle').textContent = 'Booking requests'; loadBookings(); }
+}
+
+function buildTabbar(){
+  const bar = document.getElementById('tabbar');
+  if (state.user.role === 'client') {
+    bar.innerHTML = `
+      <button class="tab-btn active" data-view="browse"><span class="ic">🔍</span>Browse</button>
+      <button class="tab-btn" data-view="bookings"><span class="ic">📅</span>Bookings</button>`;
+  } else {
+    bar.innerHTML = `
+      <button class="tab-btn active" data-view="bookings"><span class="ic">📅</span>Requests</button>
+      <button class="tab-btn" data-view="portfolio"><span class="ic">🖼️</span>Portfolio</button>`;
+    loadPortfolioForm();
+  }
+  bar.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.onclick = () => {
+      bar.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      showView(btn.dataset.view);
+      if (btn.dataset.view === 'browse') loadCreators();
+      if (btn.dataset.view === 'bookings') loadBookings();
+    };
+  });
+}
+
+function showView(name){
+  ['browse','bookings','portfolio'].forEach(v => {
+    const el = document.getElementById('view-' + v);
+    if (el) el.hidden = (v !== name);
+  });
+}
+
+// ---------- CLIENT: BROWSE ----------
+let searchDebounce;
+document.getElementById('searchInput').oninput = () => { clearTimeout(searchDebounce); searchDebounce = setTimeout(loadCreators, 300); };
+document.getElementById('typeFilter').onchange = loadCreators;
+
+async function loadCreators(){
+  const q = document.getElementById('searchInput').value.trim();
+  const type = document.getElementById('typeFilter').value;
+  const list = document.getElementById('creatorList');
+  try {
+    const creators = await api(`/creators?q=${encodeURIComponent(q)}&type=${type}`);
+    if (!creators.length) { list.innerHTML = '<div class="empty">No creators match yet. Check back soon.</div>'; return; }
+    list.innerHTML = creators.map(c => `
+      <div class="creator-card" data-id="${c.id}">
+        <div class="avatar">${initials(c.name)}</div>
+        <div class="info">
+          <strong>${esc(c.name)}</strong>
+          <span>${esc(c.city||'')} · ${esc(c.contentType)} ${c.ratingCount ? '· ★' + c.ratingAvg.toFixed(1) : ''}</span>
+        </div>
+        <div class="rate-tag">£${c.rate}/hr</div>
+      </div>`).join('');
+    list.querySelectorAll('.creator-card').forEach(card => {
+      card.onclick = () => openCreatorModal(card.dataset.id);
+    });
+  } catch (e) { list.innerHTML = '<div class="empty">' + esc(e.message) + '</div>'; }
+}
+
+async function openCreatorModal(id){
+  const c = await api('/creators/' + id);
+  const body = document.getElementById('modalBody');
+  body.innerHTML = `
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <div class="avatar" style="width:64px;height:64px;font-size:20px;margin-bottom:12px;">${initials(c.name)}</div>
+    <h2>${esc(c.name)}</h2>
+    <p style="color:var(--ink-soft);margin:4px 0 14px;">${esc(c.city||'')} · £${c.rate}/hr · ${esc(c.contentType)}</p>
+    <p style="margin-bottom:14px;">${esc(c.bio || 'No bio yet.')}</p>
+    <div class="portfolio-list">${(c.portfolio||[]).map(p => `<a href="${esc(p)}" target="_blank" rel="noopener">${esc(p)}</a>`).join('') || '<span style="color:var(--ink-soft);font-size:13px;">No portfolio links yet.</span>'}</div>
+    <h3 style="margin:18px 0 8px;font-size:16px;">Reviews ${c.ratingCount ? '· ★' + c.ratingAvg.toFixed(1) : ''}</h3>
+    <div>${(c.reviews||[]).map(r => `<div style="margin-bottom:10px;"><span class="stars">${'★'.repeat(r.rating)}${'☆'.repeat(5-r.rating)}</span> <strong style="font-size:13px;">${esc(r.client_name)}</strong><div style="font-size:13px;color:var(--ink-soft);">${esc(r.comment||'')}</div></div>`).join('') || '<div class="empty" style="padding:10px 0;">No reviews yet.</div>'}</div>
+    <h3 style="margin:18px 0 8px;font-size:16px;">Book this creator</h3>
+    <div class="field"><label>Date &amp; time</label><input type="datetime-local" id="bkDatetime"></div>
+    <div class="field"><label>Location</label><input type="text" id="bkLocation" placeholder="e.g. Shoreditch, London"></div>
+    <div class="field"><label>Notes</label><textarea id="bkNotes" placeholder="What are you shooting?"></textarea></div>
+    <div class="error-msg" id="bkError"></div>
+    <button class="btn btn-primary btn-block" id="bkSubmit">Request booking</button>
+  `;
+  document.getElementById('bkSubmit').onclick = async () => {
+    const datetime = document.getElementById('bkDatetime').value;
+    const errEl = document.getElementById('bkError');
+    if (!datetime) { errEl.textContent = 'Pick a date and time'; return; }
+    try {
+      await api('/bookings', { method: 'POST', body: JSON.stringify({
+        creatorId: c.id, datetime, location: document.getElementById('bkLocation').value, notes: document.getElementById('bkNotes').value
+      })});
+      closeModal();
+      showView('bookings'); document.querySelectorAll('.tab-btn').forEach(b=>b.classList.toggle('active', b.dataset.view==='bookings'));
+      loadBookings();
+    } catch (e) { errEl.textContent = e.message; }
+  };
+  document.getElementById('modalBackdrop').hidden = false;
+}
+
+function closeModal(){
+  document.getElementById('modalBackdrop').hidden = true;
+  document.getElementById('modalBody').innerHTML = '';
+  if (state.chatPoll) { clearInterval(state.chatPoll); state.chatPoll = null; }
+}
+document.getElementById('modalBackdrop').addEventListener('click', (e) => { if (e.target.id === 'modalBackdrop') closeModal(); });
+
+// ---------- BOOKINGS (both roles) ----------
+async function loadBookings(){
+  const list = document.getElementById('bookingList');
+  try {
+    const bookings = await api('/bookings');
+    if (!bookings.length) { list.innerHTML = '<div class="empty">No bookings yet.</div>'; return; }
+    const isCreator = state.user.role === 'creator';
+    list.innerHTML = bookings.map(b => {
+      const other = isCreator ? b.client.name : b.creator.name;
+      let actions = '';
+      if (isCreator && b.status === 'pending') {
+        actions = `<button class="btn btn-primary btn-sm" data-act="accepted" data-id="${b.id}">Accept</button>
+                   <button class="btn btn-danger btn-sm" data-act="declined" data-id="${b.id}">Decline</button>`;
+      } else if (isCreator && b.status === 'accepted') {
+        actions = `<button class="btn btn-dark btn-sm" data-act="completed" data-id="${b.id}">Mark completed</button>`;
+      } else if (!isCreator && (b.status === 'pending' || b.status === 'accepted')) {
+        actions = `<button class="btn btn-danger btn-sm" data-act="cancelled" data-id="${b.id}">Cancel</button>`;
+      }
+      return `<div class="booking-card" data-open="${b.id}">
+        <div class="row1"><strong>${esc(other)}</strong><span class="badge ${b.status}">${b.status}</span></div>
+        <div class="meta">${fmtDate(b.datetime)} · ${esc(b.location||'No location set')}</div>
+        <div class="booking-actions">
+          <button class="btn btn-ghost btn-sm" data-open-chat="${b.id}">Open chat</button>
+          ${actions}
+        </div>
+      </div>`;
+    }).join('');
+    list.querySelectorAll('[data-act]').forEach(btn => {
+      btn.onclick = async (e) => {
+        e.stopPropagation();
+        await api(`/bookings/${btn.dataset.id}/status`, { method: 'PUT', body: JSON.stringify({ status: btn.dataset.act }) });
+        loadBookings();
+      };
+    });
+    list.querySelectorAll('[data-open-chat]').forEach(btn => {
+      btn.onclick = (e) => { e.stopPropagation(); openBookingModal(btn.dataset.openChat, bookings.find(b=>String(b.id)===btn.dataset.openChat)); };
+    });
+  } catch (e) { list.innerHTML = '<div class="empty">' + esc(e.message) + '</div>'; }
+}
+
+async function openBookingModal(id, booking){
+  const body = document.getElementById('modalBody');
+  const isCreator = state.user.role === 'creator';
+  const other = isCreator ? booking.creator ? booking.client.name : '' : booking.creator.name;
+  body.innerHTML = `
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <h2>${esc(isCreator ? booking.client.name : booking.creator.name)}</h2>
+    <p style="color:var(--ink-soft);margin:4px 0 14px;">${fmtDate(booking.datetime)} · <span class="badge ${booking.status}">${booking.status}</span></p>
+    <div class="chat-box" id="chatBox"><div class="empty">Loading messages…</div></div>
+    <div class="chat-input-row">
+      <input type="text" id="chatInput" placeholder="Type a message…">
+      <button class="btn btn-primary btn-sm" id="chatSend">Send</button>
+    </div>
+    ${(!isCreator && booking.status === 'completed') ? `
+      <h3 style="margin:18px 0 8px;font-size:16px;">Leave a review</h3>
+      <div class="field"><label>Rating (1-5)</label><input type="number" id="revRating" min="1" max="5" value="5"></div>
+      <div class="field"><label>Comment</label><textarea id="revComment" placeholder="How was the shoot?"></textarea></div>
+      <div class="error-msg" id="revError"></div>
+      <button class="btn btn-dark btn-block" id="revSubmit">Submit review</button>
+    ` : ''}
+  `;
+  document.getElementById('modalBackdrop').hidden = false;
+
+  async function refreshChat(){
+    const msgs = await api(`/bookings/${id}/messages`);
+    const box = document.getElementById('chatBox');
+    if (!box) return;
+    box.innerHTML = msgs.length ? msgs.map(m => `
+      <div class="chat-msg ${m.sender_id === state.user.id ? 'mine' : ''}">
+        <div class="who">${esc(m.sender_name)}</div>${esc(m.text)}
+      </div>`).join('') : '<div class="empty">No messages yet. Say hello!</div>';
+    box.scrollTop = box.scrollHeight;
+  }
+  await refreshChat();
+  state.chatPoll = setInterval(refreshChat, 3000);
+
+  document.getElementById('chatSend').onclick = async () => {
+    const input = document.getElementById('chatInput');
+    if (!input.value.trim()) return;
+    await api(`/bookings/${id}/messages`, { method: 'POST', body: JSON.stringify({ text: input.value.trim() }) });
+    input.value = '';
+    refreshChat();
+  };
+  document.getElementById('chatInput').addEventListener('keydown', (e) => { if (e.key === 'Enter') document.getElementById('chatSend').click(); });
+
+  const revBtn = document.getElementById('revSubmit');
+  if (revBtn) {
+    revBtn.onclick = async () => {
+      const errEl = document.getElementById('revError');
+      try {
+        await api(`/bookings/${id}/review`, { method: 'POST', body: JSON.stringify({
+          rating: Number(document.getElementById('revRating').value), comment: document.getElementById('revComment').value
+        })});
+        closeModal();
+        loadBookings();
+      } catch (e) { errEl.textContent = e.message; }
+    };
+  }
+}
+
+// ---------- CREATOR: PORTFOLIO ----------
+async function loadPortfolioForm(){
+  try {
+    const me = await api('/me');
+    const p = me.creatorProfile;
+    document.getElementById('pfBio').value = p.bio || '';
+    document.getElementById('pfType').value = p.contentType || 'both';
+    document.getElementById('pfRate').value = p.rate || 0;
+    document.getElementById('pfPortfolio').value = (p.portfolio || []).join('\n');
+  } catch (e) {}
+}
+document.getElementById('pfSave').onclick = async () => {
+  const msg = document.getElementById('pfMsg');
+  try {
+    await api('/creator-profile', { method: 'PUT', body: JSON.stringify({
+      bio: document.getElementById('pfBio').value,
+      contentType: document.getElementById('pfType').value,
+      rate: Number(document.getElementById('pfRate').value) || 0,
+      portfolio: document.getElementById('pfPortfolio').value.split('\n').map(s=>s.trim()).filter(Boolean),
+    })});
+    msg.style.color = '#27500A';
+    msg.textContent = 'Saved!';
+    setTimeout(()=>msg.textContent='', 2000);
+  } catch (e) { msg.style.color = '#A32D2D'; msg.textContent = e.message; }
+};
+
+// ---------- BOOT ----------
+(async function boot(){
+  if (state.token) {
+    try {
+      state.user = await api('/me');
+      enterApp();
+    } catch (e) {
+      localStorage.removeItem('shootsy_token');
+      state.token = null;
+    }
+  }
+})();
+</script>
+</body>
+</html>

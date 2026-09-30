@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Shootsy: Investor overview</title>
+<meta name="description" content="Shootsy investor overview: market opportunity, business model, go-to-market strategy, financial snapshot and funding ask.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --purple:#E22E72;
+    --purple-dark:#AA2356;
+    --pink:#E22E72;
+    --orange:#E22E72;
+    --yellow:#E22E72;
+    --ink:#170F26;
+    --ink-soft:#3E3352;
+    --bg:#FFFFFF;
+    --bg-soft:#FDF1F5;
+    --bg-dark:#170F26;
+    --border:#F6DCE7;
+    --grad: linear-gradient(120deg,var(--purple) 0%,var(--purple-dark) 100%);
+    --grad-soft: linear-gradient(120deg, rgba(226,46,114,0.10), rgba(170,35,86,0.10));
+    --shadow: 0 20px 50px -20px rgba(170,35,86,0.30);
+    --radius: 20px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html{scroll-behavior:smooth;}
+  body{
+    font-family:'Inter',sans-serif;
+    color:var(--ink);
+    background:var(--bg);
+    line-height:1.6;
+    -webkit-font-smoothing:antialiased;
+    overflow-x:hidden;
+  }
+  h1,h2,h3,h4,.logotype{font-family:'Fredoka',sans-serif;}
+  a{text-decoration:none;color:inherit;}
+  ul{list-style:none;}
+  img,svg{display:block;max-width:100%;}
+  .container{max-width:1180px;margin:0 auto;padding:0 24px;}
+  section{position:relative;}
+  .eyebrow{
+    display:inline-flex;align-items:center;gap:8px;
+    font-size:13px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
+    color:var(--purple-dark);
+    background:var(--grad-soft);
+    border:1px solid var(--border);
+    padding:6px 14px;border-radius:999px;
+    margin-bottom:18px;
+  }
+  h2.section-title{font-size:clamp(28px,4vw,42px);font-weight:700;letter-spacing:-0.02em;margin-bottom:14px;}
+  p.section-sub{font-size:17px;color:var(--ink-soft);max-width:620px;margin-bottom:44px;}
+  .btn{
+    display:inline-flex;align-items:center;justify-content:center;gap:8px;
+    padding:14px 26px;border-radius:999px;font-weight:700;font-size:15px;
+    cursor:pointer;border:none;transition:transform .15s ease, box-shadow .15s ease;
+    white-space:nowrap;
+  }
+  .btn:hover{transform:translateY(-2px);}
+  .btn-primary{background:var(--grad);color:#fff;box-shadow:var(--shadow);}
+  .btn-primary:hover{box-shadow:0 24px 60px -18px rgba(226,46,114,0.55);}
+  .btn-ghost{background:#fff;color:var(--ink);border:1.5px solid var(--border);}
+  .btn-ghost:hover{border-color:var(--purple);}
+
+  header{
+    position:sticky;top:0;z-index:100;
+    background:rgba(255,255,255,0.85);
+    backdrop-filter:blur(14px);
+    border-bottom:1px solid var(--border);
+  }
+  nav{display:flex;align-items:center;justify-content:space-between;padding:16px 24px;max-width:1180px;margin:0 auto;}
+  .logo{display:flex;align-items:center;gap:10px;}
+  .logo img{height:30px;width:auto;display:block;}
+  .logotype{font-size:21px;font-weight:700;letter-spacing:-0.01em;color:var(--ink);}
+
+  .intro{padding:72px 0 40px;background:var(--bg-soft);}
+  .intro .container{max-width:760px;}
+  .intro h1{font-size:clamp(32px,4.6vw,48px);font-weight:700;letter-spacing:-0.03em;line-height:1.1;margin-bottom:20px;}
+  .intro h1 .grad-text{background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent;}
+  .intro p.lead{font-size:17.5px;color:var(--ink-soft);margin-bottom:28px;}
+  .intro-ctas{display:flex;gap:14px;flex-wrap:wrap;}
+
+  .card-grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;}
+
+  .whynow{padding:90px 0;background:var(--ink);color:#fff;}
+  .whynow .eyebrow{background:rgba(255,255,255,0.08);border-color:rgba(255,255,255,0.14);color:#F3B4C8;}
+  .whynow h2{color:#fff;}
+  .whynow-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:20px;margin-top:20px;}
+  .why-card{background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:16px;padding:26px;}
+  .why-card .num{font-family:'Fredoka',sans-serif;font-size:30px;font-weight:700;background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent;margin-bottom:10px;}
+  .why-card p{font-size:14px;color:rgba(255,255,255,0.75);}
+
+  .biz{padding:90px 0;}
+  .biz-grid{display:grid;grid-template-columns:1.1fr 0.9fr;gap:24px;}
+  .biz-card{background:var(--bg-soft);border:1px solid var(--border);border-radius:var(--radius);padding:34px;}
+  .biz-card h3{font-size:19px;font-weight:700;margin-bottom:18px;}
+  .rev-row{display:flex;justify-content:space-between;align-items:center;padding:14px 0;border-bottom:1px solid var(--border);}
+  .rev-row:last-child{border-bottom:none;}
+  .rev-row .label{font-size:14.5px;font-weight:600;}
+  .rev-row .val{font-size:14px;color:var(--purple-dark);font-weight:700;}
+  .premium-list li{display:flex;justify-content:space-between;font-size:14.5px;padding:10px 0;border-bottom:1px dashed var(--border);}
+  .premium-list li:last-child{border-bottom:none;}
+  .tag-sm{font-size:11px;font-weight:700;background:var(--grad-soft);color:var(--purple-dark);padding:3px 10px;border-radius:999px;}
+
+  .gtm{padding:90px 0;background:var(--bg-soft);}
+  .gtm-flex{display:grid;grid-template-columns:1fr 1fr;gap:50px;}
+  .gtm-launch h3{font-size:19px;font-weight:700;margin-bottom:18px;}
+  .gtm-launch ul li{display:flex;gap:12px;font-size:15px;padding:9px 0;color:var(--ink-soft);}
+  .timeline{list-style:none;position:relative;padding-left:28px;}
+  .timeline::before{content:'';position:absolute;left:8px;top:6px;bottom:6px;width:2px;background:var(--border);}
+  .timeline li{position:relative;padding-bottom:26px;font-size:15px;font-weight:600;}
+  .timeline li:last-child{padding-bottom:0;}
+  .timeline li::before{content:'';position:absolute;left:-28px;top:2px;width:16px;height:16px;border-radius:50%;background:var(--grad);border:3px solid #fff;box-shadow:0 0 0 1px var(--border);}
+  .timeline li span{display:block;font-weight:400;font-size:13px;color:var(--ink-soft);margin-top:2px;}
+
+  .financials{padding:90px 0;background:var(--ink);color:#fff;}
+  .financials .eyebrow{background:rgba(255,255,255,0.08);border-color:rgba(255,255,255,0.14);color:#F3B4C8;}
+  .financials h2{color:#fff;}
+  .stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:20px;margin-top:10px;}
+  .stat-card{background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:18px;padding:30px 22px;text-align:center;}
+  .stat-card .stat-num{font-family:'Fredoka',sans-serif;font-size:clamp(24px,3vw,32px);font-weight:700;margin-bottom:8px;}
+  .stat-card .stat-num.grad{background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent;}
+  .stat-card p{font-size:13.5px;color:rgba(255,255,255,0.68);}
+
+  .ask{padding:90px 0;}
+  .inv-box{
+    display:grid;grid-template-columns:1.2fr 0.8fr;gap:40px;
+    background:var(--bg-soft);border:1px solid var(--border);border-radius:var(--radius);padding:48px;
+  }
+  .inv-box h3{font-size:22px;font-weight:700;margin-bottom:14px;}
+  .inv-box p{font-size:15px;color:var(--ink-soft);margin-bottom:20px;}
+  .ask-amount{font-family:'Fredoka',sans-serif;font-size:38px;font-weight:700;margin-bottom:6px;}
+  .ask-amount .grad-text{background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent;}
+  .use-list li{font-size:14px;color:var(--ink-soft);padding:6px 0;display:flex;gap:10px;}
+  .inv-side{background:var(--ink);color:#fff;border-radius:16px;padding:28px;display:flex;flex-direction:column;justify-content:space-between;}
+  .inv-side p{color:rgba(255,255,255,0.7);font-size:13.5px;}
+
+  footer{padding:60px 0 30px;background:var(--ink);color:rgba(255,255,255,0.7);}
+  .footer-top{display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:30px;padding-bottom:40px;border-bottom:1px solid rgba(255,255,255,0.1);}
+  .footer-brand p{font-size:14px;max-width:280px;margin-top:12px;color:rgba(255,255,255,0.55);}
+  .footer-col a{display:block;font-size:14px;color:rgba(255,255,255,0.6);padding:6px 0;}
+  .footer-col a:hover{color:#fff;}
+  .footer-bottom{display:flex;justify-content:space-between;padding-top:24px;font-size:13px;color:rgba(255,255,255,0.4);flex-wrap:wrap;gap:10px;}
+
+  @media (max-width: 900px){
+    .biz-grid, .gtm-flex, .inv-box{grid-template-columns:1fr;}
+    .card-grid-3, .whynow-grid, .stat-grid{grid-template-columns:repeat(2,1fr);}
+    .inv-box{padding:32px;}
+  }
+  @media (max-width: 560px){
+    .card-grid-3, .whynow-grid, .stat-grid{grid-template-columns:1fr;}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <nav>
+    <a href="index.html" class="logo">
+      <img src="shootsy-logo.png" alt="Shootsy">
+    </a>
+    <a href="index.html" class="btn btn-ghost" style="padding:11px 22px;font-size:14px;">← Back to shootsy.co.uk</a>
+  </nav>
+</header>
+
+<section class="intro">
+  <div class="container">
+    <div class="eyebrow">✦ Investor overview</div>
+    <h1>Building the marketplace for <span class="grad-text">on-demand content creation.</span></h1>
+    <p class="lead">Shootsy connects influencers, personal brands, businesses and everyday people with trusted local photographers and videographers, booked instantly. Below is why we're raising, and what it takes to get there.</p>
+    <div class="intro-ctas">
+      <a href="mailto:daisymccarthy92@outlook.com?subject=Shootsy%20Investor%20Enquiry" class="btn btn-primary">Contact founder</a>
+    </div>
+  </div>
+</section>
+
+<section class="whynow">
+  <div class="container">
+    <div class="eyebrow">Why now</div>
+    <h2 class="section-title">The timing has never been better.</h2>
+    <div class="whynow-grid">
+      <div class="why-card"><div class="num">01</div><p>Massive growth of the creator economy</p></div>
+      <div class="why-card"><div class="num">02</div><p>Short-form video dominates social media</p></div>
+      <div class="why-card"><div class="num">03</div><p>More people building personal brands</p></div>
+      <div class="why-card"><div class="num">04</div><p>Growth in freelance and creator work</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="biz">
+  <div class="container">
+    <div class="eyebrow">Business model</div>
+    <h2 class="section-title">Simple, scalable revenue.</h2>
+    <div class="biz-grid">
+      <div class="biz-card">
+        <h3>Revenue streams</h3>
+        <div class="rev-row"><span class="label">Commission on every booking</span><span class="val">20%</span></div>
+        <div class="rev-row"><span class="label">Monthly subscriptions</span><span class="val">Creators &amp; power users</span></div>
+        <div class="rev-row"><span class="label">Business accounts</span><span class="val">Teams &amp; brands</span></div>
+      </div>
+      <div class="biz-card">
+        <h3>Premium features</h3>
+        <ul class="premium-list">
+          <li>Rush delivery <span class="tag-sm">Add-on</span></li>
+          <li>AI pose guidance <span class="tag-sm">Add-on</span></li>
+          <li>Priority listings <span class="tag-sm">Creator</span></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="gtm">
+  <div class="container">
+    <div class="eyebrow">Go-to-market</div>
+    <h2 class="section-title">Launch local, expand global.</h2>
+    <div class="gtm-flex">
+      <div class="gtm-launch">
+        <h3>Launching in London by:</h3>
+        <ul>
+          <li>→ Recruiting photographers through universities</li>
+          <li>→ Partnering with creators and influencers</li>
+          <li>→ Running paid social campaigns</li>
+          <li>→ Building a referral programme</li>
+        </ul>
+      </div>
+      <div>
+        <h3 style="font-size:19px;font-weight:700;margin-bottom:18px;">Then expanding to:</h3>
+        <ul class="timeline">
+          <li>Manchester <span>Phase 2</span></li>
+          <li>Birmingham <span>Phase 3</span></li>
+          <li>Leeds <span>Phase 4</span></li>
+          <li>Europe <span>Phase 5</span></li>
+          <li>North America <span>Phase 6</span></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="financials">
+  <div class="container">
+    <div class="eyebrow">The numbers</div>
+    <h2 class="section-title">What scale looks like.</h2>
+    <p class="section-sub" style="color:rgba(255,255,255,0.65);">An illustrative snapshot once Shootsy reaches steady-state monthly volume.</p>
+    <div class="stat-grid">
+      <div class="stat-card"><div class="stat-num grad">20,000</div><p>Bookings per month</p></div>
+      <div class="stat-card"><div class="stat-num grad">£70</div><p>Average booking value</p></div>
+      <div class="stat-card"><div class="stat-num grad">£1.4M</div><p>Monthly booking value</p></div>
+      <div class="stat-card"><div class="stat-num grad">£280K</div><p>Monthly platform revenue (20% commission)</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="ask">
+  <div class="container">
+    <div class="eyebrow">Funding ask</div>
+    <h2 class="section-title">Raising our pre-seed round.</h2>
+    <div class="inv-box">
+      <div>
+        <div class="ask-amount"><span class="grad-text">£500K–£1M</span></div>
+        <p>Pre-seed funding to bring Shootsy to market and build the foundation for our UK-wide, then global, expansion.</p>
+        <ul class="use-list">
+          <li>→ Build the MVP</li>
+          <li>→ Launch in London</li>
+          <li>→ Acquire early users and creators</li>
+          <li>→ Improve trust and safety</li>
+          <li>→ Scale internationally</li>
+        </ul>
+      </div>
+      <div class="inv-side">
+        <div>
+          <h3 style="color:#fff;font-size:18px;margin-bottom:10px;">Let's talk</h3>
+          <p>For the full investor deck, financials or to discuss the round, get in touch directly.</p>
+        </div>
+        <a href="mailto:daisymccarthy92@outlook.com?subject=Shootsy%20Investor%20Enquiry" class="btn btn-primary" style="margin-top:20px;">Contact founder</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="container">
+    <div class="footer-top">
+      <div class="footer-brand">
+        <div class="logo">
+          <img src="shootsy-logo.png" alt="Shootsy" style="height:26px;">
+        </div>
+        <p>Book trusted content creators on demand.</p>
+      </div>
+      <div class="footer-col">
+        <a href="index.html">← Back to shootsy.co.uk</a>
+        <a href="about.html">About the founder</a>
+        <a href="mailto:daisymccarthy92@outlook.com">Contact</a>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 Shootsy. All rights reserved.</span>
+      <span>Investor overview. Not for public distribution.</span>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>
