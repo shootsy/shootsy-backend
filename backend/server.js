@@ -36,9 +36,23 @@ function creatorPublic(u, p) {
     portfolio: p ? JSON.parse(p.portfolio || '[]') : [],
     styles: p ? JSON.parse(p.styles || '[]') : [],
     experience: p ? (p.experience || '') : '',
+    photos: p ? JSON.parse(p.photos || '[]') : [],
+    verified: p ? !!p.verified : false,
+    lat: p ? p.lat : null,
+    lng: p ? p.lng : null,
     ratingAvg: p ? p.rating_avg : 0,
     ratingCount: p ? p.rating_count : 0,
   };
+}
+
+// Distance between two lat/lng points in km (haversine formula).
+function distanceKm(lat1, lng1, lat2, lng2) {
+  if ([lat1, lng1, lat2, lng2].some(v => v === null || v === undefined || Number.isNaN(v))) return null;
+  const R = 6371;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLng = (lng2 - lng1) * Math.PI / 180;
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLng / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
 function authenticate(req) {
@@ -133,8 +147,10 @@ function handleMe(req, res, user) {
 function handleListCreators(req, res, query) {
   const search = (query.get('q') || '').toLowerCase();
   const type = query.get('type');
+  const nearLat = query.get('lat') !== null ? Number(query.get('lat')) : null;
+  const nearLng = query.get('lng') !== null ? Number(query.get('lng')) : null;
   let rows = db.prepare(`
-    SELECT u.*, p.bio, p.content_type, p.rate, p.portfolio, p.styles, p.experience, p.rating_avg, p.rating_count
+    SELECT u.*, p.bio, p.content_type, p.rate, p.portfolio, p.styles, p.experience, p.photos, p.verified, p.lat, p.lng, p.rating_avg, p.rating_count
     FROM users u JOIN creator_profiles p ON p.user_id = u.id
     WHERE u.role = 'creator'
   `).all();
@@ -148,7 +164,16 @@ function handleListCreators(req, res, query) {
     const matchesType = !type || type === 'all' || r.content_type === type || r.content_type === 'both';
     return matchesSearch && matchesType;
   });
-  send(res, 200, rows.map(r => creatorPublic(r, r)));
+  let out = rows.map(r => creatorPublic(r, r));
+  if (nearLat !== null && nearLng !== null) {
+    out = out.map(c => ({ ...c, distanceKm: distanceKm(nearLat, nearLng, c.lat, c.lng) }));
+    out.sort((a, b) => {
+      if (a.distanceKm === null) return 1;
+      if (b.distanceKm === null) return -1;
+      return a.distanceKm - b.distanceKm;
+    });
+  }
+  send(res, 200, out);
 }
 
 function handleGetCreator(req, res, id) {
@@ -171,9 +196,77 @@ async function handleUpdateCreatorProfile(req, res, user) {
   const portfolio = body.portfolio ? JSON.stringify(body.portfolio) : current.portfolio;
   const styles = body.styles ? JSON.stringify(body.styles) : (current.styles || '[]');
   const experience = body.experience ?? (current.experience || '');
-  db.prepare('UPDATE creator_profiles SET bio=?, content_type=?, rate=?, portfolio=?, styles=?, experience=? WHERE user_id=?')
-    .run(bio, contentType, rate, portfolio, styles, experience, user.id);
+  const photos = body.photos ? JSON.stringify(body.photos) : (current.photos || '[]');
+  const lat = body.lat ?? current.lat;
+  const lng = body.lng ?? current.lng;
+  db.prepare('UPDATE creator_profiles SET bio=?, content_type=?, rate=?, portfolio=?, styles=?, experience=?, photos=?, lat=?, lng=? WHERE user_id=?')
+    .run(bio, contentType, rate, portfolio, styles, experience, photos, lat, lng, user.id);
   send(res, 200, creatorPublic(user, getCreatorProfile(user.id)));
+}
+
+// ---------- favorites ----------
+
+function handleListFavorites(req, res, user) {
+  if (!user || user.role !== 'client') return send(res, 403, { error: 'Clients only' });
+  const rows = db.prepare(`
+    SELECT u.*, p.bio, p.content_type, p.rate, p.portfolio, p.styles, p.experience, p.photos, p.verified, p.lat, p.lng, p.rating_avg, p.rating_count
+    FROM favorites f JOIN users u ON u.id = f.creator_id JOIN creator_profiles p ON p.user_id = u.id
+    WHERE f.client_id = ? ORDER BY f.created_at DESC
+  `).all(user.id);
+  send(res, 200, rows.map(r => creatorPublic(r, r)));
+}
+
+async function handleAddFavorite(req, res, user) {
+  if (!user || user.role !== 'client') return send(res, 403, { error: 'Clients only' });
+  const body = await readJsonBody(req);
+  const creatorId = Number(body.creatorId);
+  const creator = getUserById(creatorId);
+  if (!creator || creator.role !== 'creator') return send(res, 400, { error: 'Invalid creator' });
+  db.prepare('INSERT OR IGNORE INTO favorites (client_id, creator_id, created_at) VALUES (?,?,?)')
+    .run(user.id, creatorId, new Date().toISOString());
+  send(res, 201, { ok: true });
+}
+
+function handleRemoveFavorite(req, res, user, creatorId) {
+  if (!user || user.role !== 'client') return send(res, 403, { error: 'Clients only' });
+  db.prepare('DELETE FROM favorites WHERE client_id = ? AND creator_id = ?').run(user.id, creatorId);
+  send(res, 200, { ok: true });
+}
+
+// ---------- availability ----------
+
+function handleListAvailability(req, res, creatorId) {
+  const rows = db.prepare('SELECT * FROM availability_blocks WHERE creator_id = ? ORDER BY start_datetime ASC').all(creatorId);
+  send(res, 200, rows.map(r => ({ id: r.id, start: r.start_datetime, end: r.end_datetime, note: r.note })));
+}
+
+async function handleAddAvailability(req, res, user) {
+  if (!user || user.role !== 'creator') return send(res, 403, { error: 'Creators only' });
+  const body = await readJsonBody(req);
+  if (!body.start || !body.end) return send(res, 400, { error: 'start and end are required' });
+  const info = db.prepare('INSERT INTO availability_blocks (creator_id, start_datetime, end_datetime, note) VALUES (?,?,?,?)')
+    .run(user.id, body.start, body.end, body.note || '');
+  send(res, 201, { id: info.lastInsertRowid, start: body.start, end: body.end, note: body.note || '' });
+}
+
+function handleDeleteAvailability(req, res, user, id) {
+  if (!user || user.role !== 'creator') return send(res, 403, { error: 'Creators only' });
+  const block = db.prepare('SELECT * FROM availability_blocks WHERE id = ?').get(id);
+  if (!block || block.creator_id !== user.id) return send(res, 404, { error: 'Not found' });
+  db.prepare('DELETE FROM availability_blocks WHERE id = ?').run(id);
+  send(res, 200, { ok: true });
+}
+
+// ---------- verification (admin only, via ADMIN_KEY env var) ----------
+
+async function handleSetVerified(req, res, query) {
+  const adminKey = process.env.ADMIN_KEY;
+  if (!adminKey || query.get('adminKey') !== adminKey) return send(res, 403, { error: 'Not authorized' });
+  const body = await readJsonBody(req);
+  const creatorId = Number(body.creatorId);
+  const verified = body.verified ? 1 : 0;
+  db.prepare('UPDATE creator_profiles SET verified = ? WHERE user_id = ?').run(verified, creatorId);
+  send(res, 200, { ok: true });
 }
 
 async function handleCreateBooking(req, res, user) {
@@ -183,6 +276,10 @@ async function handleCreateBooking(req, res, user) {
   const creator = getUserById(creatorId);
   if (!creator || creator.role !== 'creator') return send(res, 400, { error: 'Invalid creator' });
   if (!datetime) return send(res, 400, { error: 'datetime is required' });
+  const blocked = db.prepare(
+    'SELECT id FROM availability_blocks WHERE creator_id = ? AND ? >= start_datetime AND ? < end_datetime'
+  ).get(creatorId, datetime, datetime);
+  if (blocked) return send(res, 409, { error: 'This creator is unavailable at that time' });
   const now = new Date().toISOString();
   const info = db.prepare(
     'INSERT INTO bookings (client_id, creator_id, session_datetime, location, notes, status, created_at) VALUES (?,?,?,?,?,?,?)'
@@ -319,6 +416,16 @@ const server = http.createServer(async (req, res) => {
     if (method === 'GET' && (m = pathname.match(/^\/api\/bookings\/(\d+)\/messages$/))) return handleListMessages(req, res, user, Number(m[1]));
     if (method === 'POST' && (m = pathname.match(/^\/api\/bookings\/(\d+)\/messages$/))) return await handleSendMessage(req, res, user, Number(m[1]));
     if (method === 'POST' && (m = pathname.match(/^\/api\/bookings\/(\d+)\/review$/))) return await handleCreateReview(req, res, user, Number(m[1]));
+
+    if (method === 'GET' && pathname === '/api/favorites') return handleListFavorites(req, res, user);
+    if (method === 'POST' && pathname === '/api/favorites') return await handleAddFavorite(req, res, user);
+    if (method === 'DELETE' && (m = pathname.match(/^\/api\/favorites\/(\d+)$/))) return handleRemoveFavorite(req, res, user, Number(m[1]));
+
+    if (method === 'GET' && (m = pathname.match(/^\/api\/availability\/(\d+)$/))) return handleListAvailability(req, res, Number(m[1]));
+    if (method === 'POST' && pathname === '/api/availability') return await handleAddAvailability(req, res, user);
+    if (method === 'DELETE' && (m = pathname.match(/^\/api\/availability\/(\d+)$/))) return handleDeleteAvailability(req, res, user, Number(m[1]));
+
+    if (method === 'POST' && pathname === '/api/admin/verify') return await handleSetVerified(req, res, url.searchParams);
 
     send(res, 404, { error: 'Not found' });
   } catch (err) {
