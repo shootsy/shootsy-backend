@@ -313,7 +313,7 @@ async function loadCreators(){
   const list = document.getElementById('creatorList');
   try {
     const creators = await api(`/creators?q=${encodeURIComponent(q)}&type=${type}`);
-    if (!creators.length) { list.innerHTML = '<div class="empty">No creators match yet — check back soon.</div>'; return; }
+    if (!creators.length) { list.innerHTML = '<div class="empty">No creators match yet. Check back soon.</div>'; return; }
     list.innerHTML = creators.map(c => `
       <div class="creator-card" data-id="${c.id}">
         <div class="avatar">${initials(c.name)}</div>
@@ -441,7 +441,7 @@ async function openBookingModal(id, booking){
     box.innerHTML = msgs.length ? msgs.map(m => `
       <div class="chat-msg ${m.sender_id === state.user.id ? 'mine' : ''}">
         <div class="who">${esc(m.sender_name)}</div>${esc(m.text)}
-      </div>`).join('') : '<div class="empty">No messages yet — say hello!</div>';
+      </div>`).join('') : '<div class="empty">No messages yet. Say hello!</div>';
     box.scrollTop = box.scrollHeight;
   }
   await refreshChat();
