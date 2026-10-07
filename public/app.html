@@ -345,7 +345,14 @@ function enterApp(){
   document.getElementById('hdrUser').hidden = false;
   document.getElementById('hdrName').textContent = 'Hi, ' + state.user.name.split(' ')[0];
   buildTabbar();
-  if (state.user.role === 'client') { showView('browse'); loadCreators(); }
+  if (state.user.role === 'client') {
+    const presetQ = new URLSearchParams(location.search).get('q');
+    if (presetQ) {
+      document.getElementById('searchInput').value = presetQ;
+      history.replaceState(null, '', location.pathname);
+    }
+    showView('browse'); loadCreators();
+  }
   else { showView('bookings'); document.getElementById('bookingsTitle').textContent = 'Booking requests'; loadBookings(); }
 }
 
