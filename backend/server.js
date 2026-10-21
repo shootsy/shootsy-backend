@@ -97,6 +97,32 @@ function serveStatic(req, res, pathname) {
   });
 }
 
+// ---------- email notifications (via Resend; needs RESEND_API_KEY on the server) ----------
+
+function escHtml(s) {
+  return String(s || '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+// Fire-and-forget: a failed email must never break signup.
+function notifyOwner(subject, html) {
+  const key = process.env.RESEND_API_KEY;
+  if (!key) { console.log('Email skipped (no RESEND_API_KEY):', subject); return; }
+  // NOTIFY_EMAIL can hold several addresses separated by commas.
+  const recipients = (process.env.NOTIFY_EMAIL || 'daisymccarthy92@outlook.com,hello@shootsy.co.uk')
+    .split(',').map(s => s.trim()).filter(Boolean);
+  const from = process.env.NOTIFY_FROM || 'Shootsy <onboarding@resend.dev>';
+  // One request per address, so one address being rejected never blocks the others.
+  recipients.forEach(to => {
+    fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + key, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ from, to: [to], subject, html }),
+    }).then(async r => {
+      if (!r.ok) console.error('Email to', to, 'failed:', r.status, await r.text().catch(() => ''));
+    }).catch(e => console.error('Email error:', e.message));
+  });
+}
+
 // ---------- route handlers ----------
 
 async function handleSignup(req, res) {
@@ -121,6 +147,21 @@ async function handleSignup(req, res) {
   db.prepare('INSERT INTO sessions (token, user_id, created_at) VALUES (?,?,?)').run(token, userId, now);
 
   send(res, 201, { token, user: publicUser(getUserById(userId)) });
+
+  try {
+    const counts = db.prepare("SELECT role, COUNT(*) AS n FROM users GROUP BY role").all();
+    const total = counts.reduce((a, r) => a + r.n, 0);
+    const byRole = counts.map(r => `${r.n} ${r.role}${r.n === 1 ? '' : 's'}`).join(', ');
+    notifyOwner(
+      `New Shootsy ${role}: ${name}`,
+      `<h2>New ${escHtml(role)} signed up</h2>` +
+      `<p><strong>Name:</strong> ${escHtml(name)}<br>` +
+      `<strong>Email:</strong> ${escHtml(email)}<br>` +
+      `<strong>City:</strong> ${escHtml(city || 'not given')}<br>` +
+      `<strong>Role:</strong> ${escHtml(role)}</p>` +
+      `<p>Total users now: ${total} (${escHtml(byRole)})</p>`
+    );
+  } catch (e) { console.error('Notify error:', e.message); }
 }
 
 async function handleLogin(req, res) {
