@@ -199,6 +199,11 @@
 
     <section id="view-bookings" hidden>
       <h2 class="section-title" id="bookingsTitle">My bookings</h2>
+      <div id="payoutBanner" hidden style="background:#FFF3F8;border:1.5px solid #F6DCE7;border-radius:14px;padding:14px 16px;margin-bottom:14px;">
+        <strong>Get paid through Shootsy</strong>
+        <p style="font-size:13px;margin:4px 0 10px;color:#3E3352;">Connect your bank with Stripe so clients can pay you. Shootsy keeps 20% and the rest is sent to you after each shoot.</p>
+        <button class="btn btn-primary btn-sm" id="payoutBtn">Set up payouts</button>
+      </div>
       <div id="bookingList"></div>
     </section>
 
@@ -537,8 +542,25 @@ function closeModal(){
 document.getElementById('modalBackdrop').addEventListener('click', (e) => { if (e.target.id === 'modalBackdrop') closeModal(); });
 
 // ---------- BOOKINGS (both roles) ----------
+async function loadPayoutBanner(){
+  const banner = document.getElementById('payoutBanner');
+  if (!banner || state.user.role !== 'creator') return;
+  try {
+    const s = await api('/stripe/status');
+    banner.hidden = !(s.enabled && !s.ready);
+    const btn = document.getElementById('payoutBtn');
+    btn.textContent = s.connected ? 'Finish payout setup' : 'Set up payouts';
+    btn.onclick = async () => {
+      btn.disabled = true;
+      try { const r = await api('/stripe/connect', { method: 'POST' }); location.href = r.url; }
+      catch (err) { alert(err.message); btn.disabled = false; }
+    };
+  } catch (e) { banner.hidden = true; }
+}
+
 async function loadBookings(){
   const list = document.getElementById('bookingList');
+  loadPayoutBanner();
   try {
     const bookings = await api('/bookings');
     if (!bookings.length) { list.innerHTML = '<div class="empty">No bookings yet.</div>'; return; }
@@ -554,9 +576,23 @@ async function loadBookings(){
       } else if (!isCreator && (b.status === 'pending' || b.status === 'accepted')) {
         actions = `<button class="btn btn-danger btn-sm" data-act="cancelled" data-id="${b.id}">Cancel</button>`;
       }
+      const ps = b.paymentStatus || 'unpaid';
+      if (!isCreator && b.status === 'accepted' && ps === 'unpaid') {
+        actions += ` <button class="btn btn-primary btn-sm" data-pay="${b.id}">Pay now</button>`;
+      }
+      if (!isCreator && b.status === 'completed' && ps === 'paid') {
+        actions += ` <button class="btn btn-primary btn-sm" data-confirm="${b.id}">Confirm shoot happened</button>`;
+      }
+      const price = b.pricePence ? '£' + (b.pricePence / 100).toFixed(2) : '';
+      const payLine = ps === 'paid' ? (b.status === 'completed'
+          ? `Paid ${price}. ${isCreator ? 'Waiting for the client to confirm (auto-releases after 48 hours).' : 'Confirm the shoot to release payment to the creator.'}`
+          : `Paid ${price}. Held safely until the shoot is done.`)
+        : ps === 'released' ? `Paid ${price}. Payout released to the creator.`
+        : (b.status === 'accepted' && !isCreator ? 'Payment needed to secure your booking.' : '');
       return `<div class="booking-card" data-open="${b.id}">
         <div class="row1"><strong>${esc(other)}</strong><span class="badge ${b.status}">${b.status}</span></div>
         <div class="meta">${fmtDate(b.datetime)} · ${esc(b.location||'No location set')}</div>
+        ${payLine ? `<div class="meta" style="margin-top:4px;color:var(--pink-dark,#AA2356);font-weight:600;">${payLine}</div>` : ''}
         <div class="booking-actions">
           <button class="btn btn-ghost btn-sm" data-open-chat="${b.id}">Open chat</button>
           ${actions}
@@ -568,6 +604,22 @@ async function loadBookings(){
         e.stopPropagation();
         await api(`/bookings/${btn.dataset.id}/status`, { method: 'PUT', body: JSON.stringify({ status: btn.dataset.act }) });
         loadBookings();
+      };
+    });
+    list.querySelectorAll('[data-pay]').forEach(btn => {
+      btn.onclick = async (e) => {
+        e.stopPropagation(); btn.disabled = true;
+        try { const r = await api(`/bookings/${btn.dataset.pay}/pay`, { method: 'POST' }); location.href = r.url; }
+        catch (err) { alert(err.message); btn.disabled = false; }
+      };
+    });
+    list.querySelectorAll('[data-confirm]').forEach(btn => {
+      btn.onclick = async (e) => {
+        e.stopPropagation();
+        if (!confirm('Confirm the shoot happened? This releases payment to the creator.')) return;
+        btn.disabled = true;
+        try { await api(`/bookings/${btn.dataset.confirm}/confirm`, { method: 'POST' }); loadBookings(); }
+        catch (err) { alert(err.message); btn.disabled = false; }
       };
     });
     list.querySelectorAll('[data-open-chat]').forEach(btn => {
