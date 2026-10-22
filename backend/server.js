@@ -103,24 +103,56 @@ function escHtml(s) {
   return String(s || '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
 
+const MAIL_FROM = () => process.env.NOTIFY_FROM || 'Shootsy <onboarding@resend.dev>';
+
 // Fire-and-forget: a failed email must never break signup.
-function notifyOwner(subject, html) {
+function sendEmail(to, subject, html, extra) {
   const key = process.env.RESEND_API_KEY;
   if (!key) { console.log('Email skipped (no RESEND_API_KEY):', subject); return; }
+  fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: { 'Authorization': 'Bearer ' + key, 'Content-Type': 'application/json' },
+    body: JSON.stringify(Object.assign({ from: MAIL_FROM(), to: [to], subject, html }, extra || {})),
+  }).then(async r => {
+    if (!r.ok) console.error('Email to', to, 'failed:', r.status, await r.text().catch(() => ''));
+  }).catch(e => console.error('Email error:', e.message));
+}
+
+function notifyOwner(subject, html) {
   // NOTIFY_EMAIL can hold several addresses separated by commas.
   const recipients = (process.env.NOTIFY_EMAIL || 'daisymccarthy92@outlook.com,hello@shootsy.co.uk')
     .split(',').map(s => s.trim()).filter(Boolean);
-  const from = process.env.NOTIFY_FROM || 'Shootsy <onboarding@resend.dev>';
   // One request per address, so one address being rejected never blocks the others.
-  recipients.forEach(to => {
-    fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: { 'Authorization': 'Bearer ' + key, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ from, to: [to], subject, html }),
-    }).then(async r => {
-      if (!r.ok) console.error('Email to', to, 'failed:', r.status, await r.text().catch(() => ''));
-    }).catch(e => console.error('Email error:', e.message));
-  });
+  recipients.forEach(to => sendEmail(to, subject, html));
+}
+
+function welcomeEmail(name, role) {
+  const first = escHtml(String(name || '').trim().split(/\s+/)[0] || 'there');
+  const site = 'https://shootsy.co.uk/app.html';
+  const nextStep = role === 'creator'
+    ? `<p style="margin:0 0 14px">Here's your to-do list so clients can find you:</p>
+       <ul style="margin:0 0 18px;padding-left:20px">
+         <li>Add your bio, your rate and your style (portrait, events, food and so on)</li>
+         <li>Upload a few of your best photos</li>
+         <li>Block out any days you're busy so you only get requests that work</li>
+       </ul>`
+    : `<p style="margin:0 0 14px">Ready to find your photographer or videographer? Pick the kind of shoot you want, check out their work and ratings, save your favourites, and chat before you book.</p>`;
+  const cta = role === 'creator' ? 'Set up my profile' : 'Find a creator';
+  const html = `<div style="background:#FDF1F5;padding:24px 12px;font-family:Arial,Helvetica,sans-serif;color:#170F26">
+    <div style="max-width:520px;margin:0 auto;background:#ffffff;border-radius:20px;overflow:hidden;border:1px solid #F6DCE7">
+      <div style="background:#E22E72;padding:22px 26px;color:#ffffff;font-size:26px;font-weight:bold">Shootsy</div>
+      <div style="padding:26px;font-size:15px;line-height:1.6">
+        <h2 style="margin:0 0 12px;font-size:22px">Welcome, ${first}!</h2>
+        <p style="margin:0 0 14px">Thanks so much for joining Shootsy. You're one of our very first members, and that really means a lot.</p>
+        ${nextStep}
+        <p style="margin:0 0 22px"><a href="${site}" style="background:#E22E72;color:#ffffff;text-decoration:none;padding:12px 22px;border-radius:999px;font-weight:bold;display:inline-block">${cta}</a></p>
+        <p style="margin:0 0 4px">Got a question or an idea? Just reply to this email. It comes straight to me.</p>
+        <p style="margin:14px 0 0">Daisy x<br><span style="color:#3E3352">Founder, Shootsy</span></p>
+      </div>
+    </div>
+    <p style="text-align:center;font-size:12px;color:#3E3352;margin:14px 0 0">You're getting this because you created a Shootsy account.</p>
+  </div>`;
+  return { subject: `Welcome to Shootsy, ${String(name || '').trim().split(/\s+/)[0] || 'there'}!`, html };
 }
 
 // ---------- route handlers ----------
@@ -162,6 +194,14 @@ async function handleSignup(req, res) {
       `<p>Total users now: ${total} (${escHtml(byRole)})</p>`
     );
   } catch (e) { console.error('Notify error:', e.message); }
+
+  // Thank-you email to the new user (only once a verified sending domain is configured).
+  try {
+    if (!/resend\.dev/i.test(MAIL_FROM()) && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      const w = welcomeEmail(name, role);
+      sendEmail(email, w.subject, w.html, { reply_to: 'hello@shootsy.co.uk' });
+    }
+  } catch (e) { console.error('Welcome email error:', e.message); }
 }
 
 async function handleLogin(req, res) {
@@ -300,9 +340,68 @@ function handleDeleteAvailability(req, res, user, id) {
 
 // ---------- verification (admin only, via ADMIN_KEY env var) ----------
 
-async function handleSetVerified(req, res, query) {
+const crypto = require('node:crypto');
+
+// Admin key comes from the X-Admin-Key header (preferred) or ?adminKey= (older).
+function isAdmin(req, query) {
   const adminKey = process.env.ADMIN_KEY;
-  if (!adminKey || query.get('adminKey') !== adminKey) return send(res, 403, { error: 'Not authorized' });
+  if (!adminKey) return false;
+  const given = String(req.headers['x-admin-key'] || (query && query.get('adminKey')) || '');
+  const a = crypto.createHash('sha256').update(given).digest();
+  const b = crypto.createHash('sha256').update(adminKey).digest();
+  return crypto.timingSafeEqual(a, b);
+}
+
+function adminUserRows() {
+  return db.prepare(`
+    SELECT u.id, u.name, u.email, u.role, u.city, u.created_at,
+           p.bio, p.rate, p.photos, p.verified
+    FROM users u LEFT JOIN creator_profiles p ON p.user_id = u.id
+    ORDER BY u.created_at DESC
+  `).all().map(r => {
+    let photoCount = 0;
+    try { photoCount = JSON.parse(r.photos || '[]').length; } catch (e) {}
+    return {
+      id: r.id, name: r.name, email: r.email, role: r.role, city: r.city || '',
+      signedUp: r.created_at,
+      profileDone: r.role === 'creator' ? !!(r.bio && r.rate > 0 && photoCount > 0) : null,
+      verified: r.role === 'creator' ? !!r.verified : null,
+    };
+  });
+}
+
+// Stops spreadsheet programs treating a cell as a formula.
+function csvCell(v) {
+  let s = String(v === null || v === undefined ? '' : v);
+  if (/^[=+\-@\t\r]/.test(s)) s = "'" + s;
+  return '"' + s.replace(/"/g, '""') + '"';
+}
+
+async function failDelay() { await new Promise(r => setTimeout(r, 800)); }
+
+async function handleAdminUsers(req, res, query) {
+  if (!isAdmin(req, query)) { await failDelay(); return send(res, 403, { error: 'Not authorized' }); }
+  send(res, 200, { users: adminUserRows() });
+}
+
+async function handleAdminUsersCsv(req, res, query) {
+  if (!isAdmin(req, query)) { await failDelay(); return send(res, 403, { error: 'Not authorized' }); }
+  const header = ['Name', 'Email', 'Role', 'City', 'Signed up', 'Profile complete', 'Verified'];
+  const lines = [header.map(csvCell).join(',')].concat(adminUserRows().map(u => [
+    u.name, u.email, u.role, u.city, u.signedUp,
+    u.profileDone === null ? '' : (u.profileDone ? 'yes' : 'no'),
+    u.verified === null ? '' : (u.verified ? 'yes' : 'no'),
+  ].map(csvCell).join(',')));
+  res.writeHead(200, {
+    'Content-Type': 'text/csv; charset=utf-8',
+    'Content-Disposition': 'attachment; filename="shootsy-signups.csv"',
+    'Cache-Control': 'no-store',
+  });
+  res.end(lines.join('\r\n'));
+}
+
+async function handleSetVerified(req, res, query) {
+  if (!isAdmin(req, query)) { await failDelay(); return send(res, 403, { error: 'Not authorized' }); }
   const body = await readJsonBody(req);
   const creatorId = Number(body.creatorId);
   const verified = body.verified ? 1 : 0;
@@ -435,6 +534,8 @@ const server = http.createServer(async (req, res) => {
   const pathname = url.pathname;
   const method = req.method;
 
+  if (pathname === '/admin') return serveStatic(req, res, '/admin.html');
+
   if (!pathname.startsWith('/api/')) {
     return serveStatic(req, res, pathname);
   }
@@ -467,6 +568,8 @@ const server = http.createServer(async (req, res) => {
     if (method === 'DELETE' && (m = pathname.match(/^\/api\/availability\/(\d+)$/))) return handleDeleteAvailability(req, res, user, Number(m[1]));
 
     if (method === 'POST' && pathname === '/api/admin/verify') return await handleSetVerified(req, res, url.searchParams);
+    if (method === 'GET' && pathname === '/api/admin/users') return await handleAdminUsers(req, res, url.searchParams);
+    if (method === 'GET' && pathname === '/api/admin/users.csv') return await handleAdminUsersCsv(req, res, url.searchParams);
 
     send(res, 404, { error: 'Not found' });
   } catch (err) {

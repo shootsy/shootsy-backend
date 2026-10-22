@@ -21,7 +21,7 @@ function readJsonBody(req) {
     let body = '';
     req.on('data', (chunk) => {
       body += chunk;
-      if (body.length > 2_000_000) {
+      if (body.length > 15_000_000) {
         reject(new Error('Body too large'));
         req.destroy();
       }
