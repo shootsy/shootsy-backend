@@ -141,6 +141,22 @@
         <div class="field"><label>Email</label><input type="email" id="loginEmail" placeholder="you@email.com"></div>
         <div class="field"><label>Password</label><input type="password" id="loginPassword" placeholder="••••••••"></div>
         <button class="btn btn-primary btn-block" id="loginSubmit">Log in</button>
+        <p style="text-align:center;margin-top:12px;font-size:13.5px;"><a href="#" id="forgotLink" style="color:#AA2356;font-weight:600;">Forgot your password?</a></p>
+      </div>
+
+      <div id="forgotForm" hidden>
+        <p style="font-size:14px;color:#3E3352;margin-bottom:12px;">Enter your email and we'll send you a link to choose a new password.</p>
+        <div class="error-msg" id="forgotMsg"></div>
+        <div class="field"><label>Email</label><input type="email" id="forgotEmail" placeholder="you@email.com"></div>
+        <button class="btn btn-primary btn-block" id="forgotSubmit">Send reset link</button>
+        <p style="text-align:center;margin-top:12px;font-size:13.5px;"><a href="#" id="backToLogin" style="color:#AA2356;font-weight:600;">Back to log in</a></p>
+      </div>
+
+      <div id="resetForm" hidden>
+        <p style="font-size:14px;color:#3E3352;margin-bottom:12px;">Choose a new password for your account.</p>
+        <div class="error-msg" id="resetMsg"></div>
+        <div class="field"><label>New password</label><input type="password" id="resetPassword" placeholder="At least 8 characters"></div>
+        <button class="btn btn-primary btn-block" id="resetSubmit">Save new password</button>
       </div>
 
       <div id="signupForm" hidden>
@@ -292,7 +308,37 @@ function switchAuthTab(which){
   document.getElementById('tabSignup').classList.toggle('active', which==='signup');
   document.getElementById('loginForm').hidden = which!=='login';
   document.getElementById('signupForm').hidden = which!=='signup';
+  document.getElementById('forgotForm').hidden = true;
+  document.getElementById('resetForm').hidden = true;
 }
+
+// ---------- FORGOT / RESET PASSWORD ----------
+document.getElementById('forgotLink').onclick = (e) => {
+  e.preventDefault();
+  document.getElementById('loginForm').hidden = true;
+  document.getElementById('forgotForm').hidden = false;
+  document.getElementById('forgotEmail').value = document.getElementById('loginEmail').value;
+};
+document.getElementById('backToLogin').onclick = (e) => { e.preventDefault(); switchAuthTab('login'); };
+document.getElementById('forgotSubmit').onclick = async () => {
+  const msg = document.getElementById('forgotMsg');
+  msg.textContent = '';
+  try {
+    await api('/forgot', { method: 'POST', body: JSON.stringify({ email: document.getElementById('forgotEmail').value.trim() }) });
+    msg.style.color = '#1B6B34';
+    msg.textContent = 'If there is an account with that email, a reset link is on its way. Check your inbox and spam folder.';
+  } catch (e) { msg.style.color = ''; msg.textContent = e.message; }
+};
+document.getElementById('resetSubmit').onclick = async () => {
+  const msg = document.getElementById('resetMsg');
+  msg.textContent = '';
+  const token = new URLSearchParams(location.search).get('reset');
+  try {
+    const data = await api('/reset', { method: 'POST', body: JSON.stringify({ token, password: document.getElementById('resetPassword').value }) });
+    history.replaceState(null, '', location.pathname);
+    onAuthSuccess(data);
+  } catch (e) { msg.textContent = e.message; }
+};
 
 let selectedRole = 'client';
 document.querySelectorAll('.role-opt').forEach(el => {
@@ -806,6 +852,12 @@ document.getElementById('avAdd').onclick = async () => {
 
 // ---------- BOOT ----------
 (async function boot(){
+  if (new URLSearchParams(location.search).get('reset')) {
+    document.getElementById('loginForm').hidden = true;
+    document.getElementById('signupForm').hidden = true;
+    document.getElementById('resetForm').hidden = false;
+    return;
+  }
   if (state.token) {
     try {
       state.user = await api('/me');
