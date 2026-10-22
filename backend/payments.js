@@ -4,6 +4,7 @@
 const crypto = require('node:crypto');
 const db = require('./db');
 const { readJsonBody, send } = require('./utils');
+const mailer = require('./mailer');
 
 const COMMISSION = 0.20;
 const AUTO_RELEASE_MS = 48 * 60 * 60 * 1000;
@@ -166,8 +167,9 @@ async function handleWebhook(req, res) {
     const s = event.data.object;
     const bookingId = Number(s.metadata && s.metadata.booking_id);
     if (bookingId && s.payment_status === 'paid') {
-      db.prepare("UPDATE bookings SET payment_status = 'paid', payment_intent = ? WHERE id = ? AND payment_status = 'unpaid'")
+      const r = db.prepare("UPDATE bookings SET payment_status = 'paid', payment_intent = ? WHERE id = ? AND payment_status = 'unpaid'")
         .run(s.payment_intent, bookingId);
+      if (r.changes) mailer.bookingPaid(db.prepare('SELECT * FROM bookings WHERE id = ?').get(bookingId));
     }
   }
   send(res, 200, { received: true });
@@ -200,6 +202,7 @@ async function releasePayout(bookingId) {
   }
   db.prepare("UPDATE bookings SET payment_status = 'released', released_at = ? WHERE id = ?")
     .run(new Date().toISOString(), bookingId);
+  mailer.payoutReleased(db.prepare('SELECT * FROM bookings WHERE id = ?').get(bookingId));
 }
 
 // POST /api/bookings/:id/confirm (client)

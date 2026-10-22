@@ -101,32 +101,26 @@ function serveStatic(req, res, pathname) {
 
 // ---------- email notifications (via Resend; needs RESEND_API_KEY on the server) ----------
 
-function escHtml(s) {
-  return String(s || '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-}
+const mailer = require('./mailer');
 
-const MAIL_FROM = () => process.env.NOTIFY_FROM || 'Shootsy <onboarding@resend.dev>';
+db.exec(`CREATE TABLE IF NOT EXISTS password_resets (
+  token_hash TEXT PRIMARY KEY,
+  user_id INTEGER NOT NULL REFERENCES users(id),
+  expires_at TEXT NOT NULL,
+  used INTEGER NOT NULL DEFAULT 0
+)`);
 
-// Fire-and-forget: a failed email must never break signup.
-function sendEmail(to, subject, html, extra) {
-  const key = process.env.RESEND_API_KEY;
-  if (!key) { console.log('Email skipped (no RESEND_API_KEY):', subject); return; }
-  fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: { 'Authorization': 'Bearer ' + key, 'Content-Type': 'application/json' },
-    body: JSON.stringify(Object.assign({ from: MAIL_FROM(), to: [to], subject, html }, extra || {})),
-  }).then(async r => {
-    if (!r.ok) console.error('Email to', to, 'failed:', r.status, await r.text().catch(() => ''));
-  }).catch(e => console.error('Email error:', e.message));
+// Simple in-memory limiter: max 5 reset requests per email and per IP per hour.
+const resetHits = new Map();
+function tooMany(key) {
+  const now = Date.now();
+  const arr = (resetHits.get(key) || []).filter(t => now - t < 3600_000);
+  arr.push(now); resetHits.set(key, arr);
+  return arr.length > 5;
 }
+const sha = t => crypto.createHash('sha256').update(t).digest('hex');
 
-function notifyOwner(subject, html) {
-  // NOTIFY_EMAIL can hold several addresses separated by commas.
-  const recipients = (process.env.NOTIFY_EMAIL || 'daisymccarthy92@outlook.com,hello@shootsy.co.uk')
-    .split(',').map(s => s.trim()).filter(Boolean);
-  // One request per address, so one address being rejected never blocks the others.
-  recipients.forEach(to => sendEmail(to, subject, html));
-}
+const { escHtml, MAIL_FROM, sendEmail, notifyOwner } = mailer;
 
 function welcomeEmail(name, role) {
   const first = escHtml(String(name || '').trim().split(/\s+/)[0] || 'there');
@@ -216,6 +210,51 @@ async function handleLogin(req, res) {
   const token = newToken();
   db.prepare('INSERT INTO sessions (token, user_id, created_at) VALUES (?,?,?)').run(token, user.id, new Date().toISOString());
   send(res, 200, { token, user: publicUser(user) });
+}
+
+// POST /api/forgot  { email }  -> always the same reply, so it can't be used to find out who has an account
+async function handleForgot(req, res) {
+  const body = await readJsonBody(req);
+  const email = String(body.email || '').trim().toLowerCase();
+  send(res, 200, { ok: true });
+  try {
+    const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress || '';
+    if (tooMany('e:' + email) || tooMany('i:' + ip)) return;
+    const user = db.prepare('SELECT * FROM users WHERE lower(email) = ?').get(email);
+    if (!user || !mailer.canEmailUsers()) return;
+    const token = crypto.randomBytes(32).toString('hex');
+    db.prepare('INSERT INTO password_resets (token_hash, user_id, expires_at) VALUES (?,?,?)')
+      .run(sha(token), user.id, new Date(Date.now() + 3600_000).toISOString());
+    const link = mailer.SITE() + '/app.html?reset=' + token;
+    mailer.mailUser(user.id, 'Reset your Shootsy password', {
+      heading: 'Reset your password',
+      paragraphs: [
+        `Hi ${escHtml(mailer.first(user.name))}, we got a request to reset your Shootsy password. Click the button below to choose a new one. The link works for 1 hour.`,
+        'If you did not ask for this, you can ignore this email. Your password has not been changed.',
+      ],
+      ctaText: 'Choose a new password', ctaUrl: link,
+      footer: 'You are getting this because someone asked to reset the password on your Shootsy account.',
+    });
+  } catch (e) { console.error('Forgot error:', e.message); }
+}
+
+// POST /api/reset  { token, password }
+async function handleReset(req, res) {
+  const body = await readJsonBody(req);
+  const token = String(body.token || '');
+  const password = String(body.password || '');
+  if (password.length < 8) return send(res, 400, { error: 'Password must be at least 8 characters' });
+  const row = db.prepare('SELECT * FROM password_resets WHERE token_hash = ?').get(sha(token));
+  if (!row || row.used || new Date(row.expires_at) < new Date()) {
+    return send(res, 400, { error: 'This reset link has expired or was already used. Please request a new one.' });
+  }
+  const { hash, salt } = hashPassword(password);
+  db.prepare('UPDATE users SET password_hash = ?, salt = ? WHERE id = ?').run(hash, salt, row.user_id);
+  db.prepare('UPDATE password_resets SET used = 1 WHERE user_id = ?').run(row.user_id);
+  db.prepare('DELETE FROM sessions WHERE user_id = ?').run(row.user_id); // log out everywhere
+  const newTok = newToken();
+  db.prepare('INSERT INTO sessions (token, user_id, created_at) VALUES (?,?,?)').run(newTok, row.user_id, new Date().toISOString());
+  send(res, 200, { token: newTok, user: publicUser(getUserById(row.user_id)) });
 }
 
 function handleMe(req, res, user) {
@@ -427,6 +466,7 @@ async function handleCreateBooking(req, res, user) {
     'INSERT INTO bookings (client_id, creator_id, session_datetime, location, notes, status, created_at) VALUES (?,?,?,?,?,?,?)'
   ).run(user.id, creatorId, datetime, location || '', notes || '', 'pending', now);
   send(res, 201, getBookingView(info.lastInsertRowid));
+  mailer.bookingRequested(db.prepare('SELECT * FROM bookings WHERE id = ?').get(info.lastInsertRowid));
 }
 
 function getBookingView(id) {
@@ -476,6 +516,10 @@ async function handleUpdateBookingStatus(req, res, user, id) {
     db.prepare('UPDATE bookings SET status = ? WHERE id = ?').run(status, id);
   }
   send(res, 200, getBookingView(id));
+  const updated = db.prepare('SELECT * FROM bookings WHERE id = ?').get(id);
+  if (status === 'accepted' || status === 'declined') mailer.bookingAnswered(updated, status);
+  else if (status === 'cancelled') mailer.bookingCancelled(updated);
+  else if (status === 'completed') mailer.bookingCompleted(updated);
 }
 
 function assertBookingParticipant(user, booking) {
@@ -554,6 +598,8 @@ const server = http.createServer(async (req, res) => {
 
     if (method === 'POST' && pathname === '/api/signup') return await handleSignup(req, res);
     if (method === 'POST' && pathname === '/api/login') return await handleLogin(req, res);
+    if (method === 'POST' && pathname === '/api/forgot') return await handleForgot(req, res);
+    if (method === 'POST' && pathname === '/api/reset') return await handleReset(req, res);
     if (method === 'GET' && pathname === '/api/me') return handleMe(req, res, user);
     if (method === 'GET' && pathname === '/api/creators') return handleListCreators(req, res, url.searchParams);
     if (method === 'PUT' && pathname === '/api/creator-profile') return await handleUpdateCreatorProfile(req, res, user);
