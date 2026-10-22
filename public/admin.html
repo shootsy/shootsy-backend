@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>Shootsy admin</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{--pink:#E22E72;--dark:#AA2356;--ink:#170F26;--soft:#3E3352;--bg:#FDF1F5;--border:#F6DCE7;}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--ink);line-height:1.5;}
+  h1,h2{font-family:'Fredoka',sans-serif;}
+  header{background:var(--pink);color:#fff;padding:16px 24px;display:flex;justify-content:space-between;align-items:center;}
+  header h1{font-size:22px;}
+  main{max-width:1100px;margin:0 auto;padding:24px 16px 60px;}
+  .card{background:#fff;border:1px solid var(--border);border-radius:16px;padding:20px;}
+  input,select,button{font-family:inherit;font-size:14px;}
+  input,select{padding:10px 12px;border-radius:10px;border:1.5px solid var(--border);outline:none;}
+  .btn{border:none;border-radius:999px;padding:10px 18px;font-weight:700;cursor:pointer;background:var(--pink);color:#fff;}
+  .btn.ghost{background:#fff;color:var(--ink);border:1.5px solid var(--border);}
+  .btn.small{padding:6px 12px;font-size:12px;}
+  .login{max-width:380px;margin:60px auto;}
+  .login h2{margin-bottom:6px;}
+  .login p{font-size:13px;color:var(--soft);margin-bottom:14px;}
+  .login input{width:100%;margin-bottom:10px;}
+  .err{color:#A32D2D;font-size:13px;min-height:18px;margin-bottom:8px;}
+  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:16px;}
+  .stat{background:#fff;border:1px solid var(--border);border-radius:14px;padding:14px 16px;}
+  .stat b{display:block;font-family:'Fredoka',sans-serif;font-size:28px;color:var(--dark);}
+  .stat span{font-size:12px;color:var(--soft);}
+  .bar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;align-items:center;}
+  .bar input{flex:1;min-width:200px;}
+  .wrap{overflow-x:auto;}
+  table{width:100%;border-collapse:collapse;font-size:13.5px;}
+  th{text-align:left;font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--soft);padding:10px 10px;border-bottom:2px solid var(--border);white-space:nowrap;}
+  td{padding:10px;border-bottom:1px solid var(--border);vertical-align:middle;}
+  .pill{display:inline-block;font-size:11px;font-weight:700;padding:3px 10px;border-radius:999px;}
+  .pill.client{background:#E8F0FF;color:#1D3C8A;}
+  .pill.creator{background:#FFE6EF;color:var(--dark);}
+  .pill.yes{background:#DDF5E3;color:#1B6B34;}
+  .pill.no{background:#F1ECF3;color:var(--soft);}
+  .muted{color:var(--soft);font-size:12px;}
+  [hidden]{display:none !important;}
+</style>
+</head>
+<body>
+<header>
+  <h1>Shootsy admin</h1>
+  <button class="btn ghost small" id="logout" hidden>Lock</button>
+</header>
+<main>
+  <div class="card login" id="loginBox">
+    <h2>Admin only</h2>
+    <p>Enter your admin key to see sign-ups.</p>
+    <div class="err" id="err"></div>
+    <input type="password" id="key" placeholder="Admin key" autocomplete="off">
+    <button class="btn" id="go" style="width:100%">Unlock</button>
+  </div>
+
+  <div id="app" hidden>
+    <div class="stats" id="stats"></div>
+    <div class="card">
+      <div class="bar">
+        <input type="text" id="search" placeholder="Search name, email or city">
+        <select id="roleFilter">
+          <option value="">Everyone</option>
+          <option value="client">Clients</option>
+          <option value="creator">Creators</option>
+        </select>
+        <button class="btn" id="csv">Download CSV</button>
+      </div>
+      <div class="wrap">
+        <table>
+          <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>City</th><th>Signed up</th><th>Profile</th><th>Verified</th></tr></thead>
+          <tbody id="rows"></tbody>
+        </table>
+      </div>
+      <p class="muted" id="empty" hidden style="padding:16px 4px">No sign-ups match.</p>
+    </div>
+  </div>
+</main>
+
+<script>
+const $ = id => document.getElementById(id);
+let key = sessionStorage.getItem('shootsy_admin_key') || '';
+let users = [];
+
+async function call(path, opts) {
+  opts = opts || {};
+  opts.headers = Object.assign({ 'X-Admin-Key': key, 'Content-Type': 'application/json' }, opts.headers || {});
+  return fetch(path, opts);
+}
+
+async function load() {
+  const r = await call('/api/admin/users');
+  if (!r.ok) throw new Error(r.status === 403 ? 'That key is not right.' : 'Something went wrong.');
+  users = (await r.json()).users;
+  $('loginBox').hidden = true; $('app').hidden = false; $('logout').hidden = false;
+  render();
+}
+
+function fmt(iso) {
+  try { return new Date(iso).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' }); } catch (e) { return iso; }
+}
+
+function cell(text) { const td = document.createElement('td'); td.textContent = text; return td; }
+function pill(text, cls) { const s = document.createElement('span'); s.className = 'pill ' + cls; s.textContent = text; return s; }
+
+function render() {
+  const q = $('search').value.trim().toLowerCase();
+  const role = $('roleFilter').value;
+  const list = users.filter(u => (!role || u.role === role) &&
+    (!q || [u.name, u.email, u.city].some(v => (v || '').toLowerCase().includes(q))));
+
+  const clients = users.filter(u => u.role === 'client').length;
+  const creators = users.filter(u => u.role === 'creator').length;
+  const week = users.filter(u => Date.now() - new Date(u.signedUp).getTime() < 7 * 864e5).length;
+  const verified = users.filter(u => u.verified).length;
+  $('stats').innerHTML = '';
+  [[users.length, 'Total sign-ups'], [clients, 'Clients'], [creators, 'Creators'], [week, 'Last 7 days'], [verified, 'Verified creators']]
+    .forEach(([n, label]) => {
+      const d = document.createElement('div'); d.className = 'stat';
+      const b = document.createElement('b'); b.textContent = n;
+      const s = document.createElement('span'); s.textContent = label;
+      d.append(b, s); $('stats').appendChild(d);
+    });
+
+  const tbody = $('rows'); tbody.innerHTML = '';
+  list.forEach(u => {
+    const tr = document.createElement('tr');
+    tr.appendChild(cell(u.name));
+    tr.appendChild(cell(u.email));
+    const tdRole = document.createElement('td'); tdRole.appendChild(pill(u.role, u.role)); tr.appendChild(tdRole);
+    tr.appendChild(cell(u.city || ''));
+    tr.appendChild(cell(fmt(u.signedUp)));
+    const tdP = document.createElement('td');
+    if (u.profileDone !== null) tdP.appendChild(pill(u.profileDone ? 'Complete' : 'Incomplete', u.profileDone ? 'yes' : 'no'));
+    tr.appendChild(tdP);
+    const tdV = document.createElement('td');
+    if (u.verified !== null) {
+      const btn = document.createElement('button');
+      btn.className = 'btn small' + (u.verified ? '' : ' ghost');
+      btn.textContent = u.verified ? 'Verified (undo)' : 'Verify';
+      btn.onclick = async () => {
+        btn.disabled = true;
+        const r = await call('/api/admin/verify', { method: 'POST', body: JSON.stringify({ creatorId: u.id, verified: !u.verified }) });
+        if (r.ok) { u.verified = !u.verified; render(); } else { btn.disabled = false; alert('Could not update.'); }
+      };
+      tdV.appendChild(btn);
+    }
+    tr.appendChild(tdV);
+    tbody.appendChild(tr);
+  });
+  $('empty').hidden = list.length > 0;
+}
+
+$('go').onclick = async () => {
+  key = $('key').value.trim();
+  $('err').textContent = '';
+  try { await load(); sessionStorage.setItem('shootsy_admin_key', key); }
+  catch (e) { $('err').textContent = e.message; key = ''; }
+};
+$('key').addEventListener('keydown', e => { if (e.key === 'Enter') $('go').click(); });
+$('search').oninput = render;
+$('roleFilter').onchange = render;
+$('logout').onclick = () => { sessionStorage.removeItem('shootsy_admin_key'); key = ''; location.reload(); };
+
+$('csv').onclick = async () => {
+  const r = await call('/api/admin/users.csv');
+  if (!r.ok) return alert('Could not download.');
+  const blob = await r.blob();
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = 'shootsy-signups.csv';
+  document.body.appendChild(a); a.click(); a.remove();
+};
+
+if (key) load().catch(() => { sessionStorage.removeItem('shootsy_admin_key'); key = ''; });
+</script>
+</body>
+</html>
