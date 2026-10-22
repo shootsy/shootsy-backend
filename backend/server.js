@@ -7,6 +7,8 @@ const { URL } = require('node:url');
 const db = require('./db');
 const { hashPassword, verifyPassword, newToken, readJsonBody, send } = require('./utils');
 
+const payments = require('./payments');
+
 const PORT = process.env.PORT || 3000;
 const PUBLIC_DIR = path.join(__dirname, '..', 'public');
 
@@ -439,6 +441,9 @@ function getBookingView(id) {
     location: b.location,
     notes: b.notes,
     createdAt: b.created_at,
+    paymentStatus: b.payment_status || 'unpaid',
+    pricePence: b.price_pence || 0,
+    completedAt: b.completed_at || null,
     client: { id: client.id, name: client.name },
     creator: { id: creator.id, name: creator.name },
   };
@@ -465,7 +470,11 @@ async function handleUpdateBookingStatus(req, res, user, id) {
   }
   const allowed = user.id === booking.creator_id ? validTransitions.creator : validTransitions.client;
   if (!allowed.includes(status)) return send(res, 400, { error: `Cannot set status to ${status}` });
-  db.prepare('UPDATE bookings SET status = ? WHERE id = ?').run(status, id);
+  if (status === 'completed') {
+    db.prepare('UPDATE bookings SET status = ?, completed_at = ? WHERE id = ?').run(status, new Date().toISOString(), id);
+  } else {
+    db.prepare('UPDATE bookings SET status = ? WHERE id = ?').run(status, id);
+  }
   send(res, 200, getBookingView(id));
 }
 
@@ -558,6 +567,12 @@ const server = http.createServer(async (req, res) => {
     if (method === 'GET' && (m = pathname.match(/^\/api\/bookings\/(\d+)\/messages$/))) return handleListMessages(req, res, user, Number(m[1]));
     if (method === 'POST' && (m = pathname.match(/^\/api\/bookings\/(\d+)\/messages$/))) return await handleSendMessage(req, res, user, Number(m[1]));
     if (method === 'POST' && (m = pathname.match(/^\/api\/bookings\/(\d+)\/review$/))) return await handleCreateReview(req, res, user, Number(m[1]));
+
+    if (method === 'POST' && pathname === '/api/stripe/webhook') return await payments.handleWebhook(req, res);
+    if (method === 'POST' && pathname === '/api/stripe/connect') return await payments.handleConnect(req, res, user);
+    if (method === 'GET' && pathname === '/api/stripe/status') return await payments.handleStatus(req, res, user);
+    if (method === 'POST' && (m = pathname.match(/^\/api\/bookings\/(\d+)\/pay$/))) return await payments.handlePay(req, res, user, Number(m[1]));
+    if (method === 'POST' && (m = pathname.match(/^\/api\/bookings\/(\d+)\/confirm$/))) return await payments.handleConfirm(req, res, user, Number(m[1]));
 
     if (method === 'GET' && pathname === '/api/favorites') return handleListFavorites(req, res, user);
     if (method === 'POST' && pathname === '/api/favorites') return await handleAddFavorite(req, res, user);
