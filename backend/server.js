@@ -8,6 +8,7 @@ const db = require('./db');
 const { hashPassword, verifyPassword, newToken, readJsonBody, send } = require('./utils');
 
 const payments = require('./payments');
+require('./backup');
 
 const PORT = process.env.PORT || 3000;
 const PUBLIC_DIR = path.join(__dirname, '..', 'public');
